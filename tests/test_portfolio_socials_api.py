@@ -488,3 +488,4 @@ def test_live_layer_follows_the_data():
     assert "LIVE.local(text)" in app and "LIVE.onMarkets(MKTS)" in app and "CALD = c" in app
     assert "LIVE.onMarket(m)" in mkt
     assert "const CAP = " in app and "CAP.start(clean)" in app and "CAP.bound(" in app      # the caption is typed out as Iris speaks
+    assert "CAP.arm(clean)" in app and "const SPEECH = " in app and "SPEECH.f >= ends[k]" in app     # caption starts at once; the highlight follows the voice

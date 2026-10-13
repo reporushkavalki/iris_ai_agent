@@ -112,17 +112,26 @@ function spotOn(sel) {
   const first = els.find(e => !e.closest('footer,header'));       // never scroll for the header or the chat bar
   if (first && !SPOT.still) { const r = first.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight - 150) first.scrollIntoView({ block: 'center', behavior: 'smooth' }) }
 }
-function stopTour() { clearTimeout(SPOT.t); spotOff() }
+function stopTour() { clearTimeout(SPOT.t); clearInterval(SPOT.t); spotOff() }
+/* where the voice is right now (0..1 of the sentence being spoken), from the word positions the browser reports. A tour that explains
+   what is being said moves on when the voice reaches the next sentence, so the highlight never drifts away from the words. */
+const SPEECH = { f: 0, last: 0 };
 function tour(steps, still) {   // steps: [[selector, milliseconds], ...]; still = never scroll the page
-  clearTimeout(SPOT.t); let i = 0; SPOT.still = !!still;
-  const next = () => { if (i >= steps.length) { spotOff(); return } const [sel, ms] = steps[i++]; spotOn(sel); SPOT.t = setTimeout(next, ms) };
-  next();
+  clearInterval(SPOT.t); clearTimeout(SPOT.t); SPOT.still = !!still;
+  let i = 0, at = 0; const w = steps.every(x => x[2]) ? 2 : 1, total = steps.reduce((a, x) => a + x[w], 0) || 1; let acc = 0; const ends = steps.map(x => (acc += x[w]) / total);     // share of the spoken text each step covers
+  const go = () => { if (i >= steps.length) { clearInterval(SPOT.t); spotOff(); return } spotOn(steps[i][0]); at = performance.now(); i++ };
+  go(); if (steps.length === 1) { SPOT.t = setTimeout(() => { spotOff() }, steps[0][1]); return }
+  SPOT.t = setInterval(() => {
+    const now = performance.now(), live = now - SPEECH.last < 900, k = i - 1;
+    if (k >= steps.length - 1) { if (now - at >= steps[k][1]) go(); return }                      // the last step simply runs its time
+    if (live ? SPEECH.f >= ends[k] - .005 && now - at > 450 : now - at >= steps[k][1]) go();      // voice reports positions: follow it; otherwise use the estimate
+  }, 120);
 }
 const speakMs = t => 700 + t.length * 62;          // rough speaking time, so each highlight lines up with its sentence
 const stepsFor = parts => parts.flatMap(([t, sel]) => {     // the question bubbles light up one after the other, in order
-  if (sel !== '#sugg') return [[sel, speakMs(t)]];
+  if (sel !== '#sugg') return [[sel, speakMs(t), t.length]];
   const n = Math.max(1, document.querySelectorAll('#sugg .bub').length), each = Math.max(1100, speakMs(t) / n);
-  return Array.from({ length: n }, (_, i) => [`#sugg .bub:nth-child(${i + 1})`, each]);
+  return Array.from({ length: n }, (_, i) => [`#sugg .bub:nth-child(${i + 1})`, each, t.length / n]);
 });
 const setExplain = on => { const c = document.querySelector('.caption'); if (c) c.classList.toggle('explain', !!on) };
 const FOCUS = { start: '#connBtn,#wDemo', claude: '#connBtn', connect: '#connBtn', social: '[data-sec=socials]', market: '[data-sec=market]', pnl: '[data-sec=balance]', positions: '[data-sec=portfolio]',
@@ -439,13 +448,13 @@ function serverSay(text, onStart) {      // the browser blocked speech (no click
 function speak(text, onStart, force, srv) {     // srv: if the browser blocks speech, let the app speak instead
   if (!synth) { if (srv && (voiceOn || force)) serverSay(text, onStart); return }
   if (!voiceOn && !force) { stopTour(); if (onStart) setTimeout(onStart, 0); return }   // voice is off: still highlight the area, just silently
-  stopTalking();
+  stopTalking(); SPEECH.f = 0; SPEECH.last = 0;
   const clean = text.replace(/[*_#`]/g, ''), u = new SpeechSynthesisUtterance(clean);
   let began = false, fell = false;
   const fallback = () => { if (srv && !began && !fell) { fell = true; serverSay(clean, onStart) } };
   if (voice) u.voice = voice;
   u.onstart = () => { began = true; NX.speaking = true; statusText(); CAP.start(clean); if ($('#note').textContent.startsWith('Click anywhere')) $('#note').textContent = ''; if (onStart) onStart() };
-  u.onboundary = ev => { NX.kick(.18); if (ev && typeof ev.charIndex === 'number' && clean.length) CAP.bound((ev.charIndex + (ev.charLength || 5)) / clean.length) };
+  u.onboundary = ev => { NX.kick(.18); if (ev && typeof ev.charIndex === 'number' && clean.length) { const f = (ev.charIndex + (ev.charLength || 5)) / clean.length; CAP.bound(f); SPEECH.f = Math.min(1, f); SPEECH.last = performance.now() } };
   const done = () => { active.delete(u); NX.speaking = active.size > 0; statusText(); if (!active.size) CAP.finish() };
   u.onend = done; u.onerror = ev => { done(); if (ev && ev.error === 'not-allowed') fallback() };
   active.add(u); CAP.arm(clean); synth.speak(u);
