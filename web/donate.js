@@ -30,10 +30,12 @@ const DONATE = (() => {
     return v > 0n && v <= 100000n * 1000000000n ? v : null;
   }
 
-  /* a legacy transaction with one System Program transfer: from -> to, fee paid by "from"; the wallet adds its signature */
-  function buildTx(from, to, blockhash, lam) {
-    const msg = [1, 0, 1, 3, ...from, ...to, ...new Uint8Array(32), ...blockhash,
-      1, 2, 2, 0, 1, 12, 2, 0, 0, 0, ...le64(lam)];
+  /* a legacy transaction with one System Program transfer: from -> to, fee paid by "from"; the wallet adds its signature.
+     ref (optional, 32 bytes): a read-only "reference" account added to the transfer (Solana Pay style) so the payment can be found on the chain later */
+  function buildTx(from, to, blockhash, lam, ref) {
+    const head = ref ? [1, 0, 2, 4] : [1, 0, 1, 3], keys = ref ? [...from, ...to, ...new Uint8Array(32), ...ref] : [...from, ...to, ...new Uint8Array(32)];
+    const ix = ref ? [1, 2, 3, 0, 1, 3, 12] : [1, 2, 2, 0, 1, 12];
+    const msg = [...head, ...keys, ...blockhash, ...ix, 2, 0, 0, 0, ...le64(lam)];
     return Uint8Array.from([1, ...new Uint8Array(64), ...msg]);
   }
 
@@ -61,21 +63,31 @@ const DONATE = (() => {
   }
   const rejected = e => e && (e.code === 4001 || /reject|denied|declin|cancel/i.test(String(e.message || e)));
 
-  async function viaPhantom(p, lam) {
+  async function viaPhantom(p, lam, to, ref) {
     const r = await p.connect();
     const from = b58dec(String((r && r.publicKey) || p.publicKey));
     const bh = await api('/api/donate/blockhash');
-    const tx = buildTx(from, b58dec(ADDR), b58dec(bh.blockhash), lam);
+    const tx = buildTx(from, b58dec(to), b58dec(bh.blockhash), lam, ref ? b58dec(ref) : null);
     const out = await p.request({ method: 'signAndSendTransaction', params: { message: b58enc(tx) } });
     return out.signature || out;
   }
-  async function viaStandard(w, lam) {
+  async function viaStandard(w, lam, to, ref) {
     const { accounts } = await w.features['standard:connect'].connect();
     const acc = accounts && accounts[0]; if (!acc) throw new Error('no account selected');
     const bh = await api('/api/donate/blockhash');
-    const tx = buildTx(Uint8Array.from(acc.publicKey), b58dec(ADDR), b58dec(bh.blockhash), lam);
+    const tx = buildTx(Uint8Array.from(acc.publicKey), b58dec(to), b58dec(bh.blockhash), lam, ref ? b58dec(ref) : null);
     const [res] = await w.features['solana:signAndSendTransaction'].signAndSendTransaction({ account: acc, transaction: tx, chain: 'solana:mainnet' });
     return b58enc(res.signature);
+  }
+
+  /* sends lam lamports to "to" through the person's own wallet (it asks them to approve). ref: optional reference address. Returns the signature. */
+  async function payTo(to, lam, ref) {
+    let sig = null, last = null;
+    const p = phantom();
+    if (p) { try { sig = await viaPhantom(p, lam, to, ref) } catch (e) { if (rejected(e)) throw e; last = e } }
+    if (!sig) { const w = stdWallets()[0]; if (w) sig = await viaStandard(w, lam, to, ref); else if (last) throw last }
+    if (!sig) throw new Error('nowallet');
+    return String(sig);
   }
 
   async function go() {
@@ -84,12 +96,7 @@ const DONATE = (() => {
     if (!lam) { msg('Type an amount in SOL first, for example 0.1', 'err'); $('#donAmt').focus(); return }
     busy = true; $('#donGo').disabled = true; msg('Waiting for your wallet to ask you to approve...');
     try {
-      let sig = null, last = null;
-      const p = phantom();
-      if (p) { try { sig = await viaPhantom(p, lam) } catch (e) { if (rejected(e)) throw e; last = e } }
-      if (!sig) { const w = stdWallets()[0]; if (w) sig = await viaStandard(w, lam); else if (last) throw last }
-      if (!sig) throw new Error('nowallet');
-      done(String(sig));
+      done(await payTo(ADDR, lam, null));
     } catch (e) {
       const t = String((e && e.message) || e);
       if (t === 'nowallet') msg('No Solana wallet found in this browser. Install Phantom, or use "Open in any Solana wallet app" below, or copy the address.', 'err');
@@ -122,6 +129,7 @@ const DONATE = (() => {
 
   return {
     sync(s) { ADDR = s.donate || null; $('#donBtn').hidden = !ADDR; if (!ADDR && !$('#donate').hidden) close() },
+    payTo, walletName, rejected,
     _t: { b58dec, b58enc, buildTx, lamports },
   };
 })();

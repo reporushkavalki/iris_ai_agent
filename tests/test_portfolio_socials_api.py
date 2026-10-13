@@ -489,3 +489,65 @@ def test_live_layer_follows_the_data():
     assert "LIVE.onMarket(m)" in mkt
     assert "const CAP = " in app and "CAP.start(clean)" in app and "CAP.bound(" in app      # the caption is typed out as Iris speaks
     assert "CAP.arm(clean)" in app and "const SPEECH = " in app and "SPEECH.f >= ends[k]" in app     # caption starts at once; the highlight follows the voice
+
+
+# ---------------------------------------------------------------- inner circle (paid Telegram access)
+REF = "4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi"
+REC = "39oAW7hrufjNi6tm7bS35n3uRaxavV4hMD19y6UKyusU"
+
+
+def _fake_server(monkeypatch, paid_after=1, link="https://t.me/+ABCDEF"):
+    from iris import inner
+    calls = []
+    monkeypatch.setattr(inner, "API", "https://inner.example.workers.dev")
+
+    def fake(method, url, **kw):
+        calls.append((url, kw.get("json")))
+        if url.endswith("/start"):
+            return {"reference": REF, "nonce": "abc.def", "recipient": REC, "lamports": 200000000, "username": kw["json"]["username"]}
+        n = sum(1 for u, _ in calls if u.endswith("/check"))
+        return {"paid": True, "link": link} if n >= paid_after else {"paid": False}
+    monkeypatch.setattr(inner.net, "request", fake)
+    return calls
+
+
+def test_inner_circle_payment_flow_and_saved_link(monkeypatch):
+    from iris import inner
+    monkeypatch.setattr(inner, "API", "")                                       # as if no server address were set
+    assert not inner.configured() and client.get("/api/inner").json()["configured"] is False
+    assert client.post("/api/inner/start", json={"username": "@Buyer_One"}).status_code == 400            # server address not set yet
+    calls = _fake_server(monkeypatch, paid_after=2)
+    assert client.get("/api/status").json()["inner"]["configured"] is True
+    assert client.post("/api/inner/start", json={"username": "no"}).status_code == 400                      # not a Telegram username
+    r = client.post("/api/inner/start", json={"username": "@Buyer_One"}).json()
+    assert r["reference"] == REF and r["recipient"] == REC and r["lamports"] == 200000000 and r["sol"] == "0.2" and r["username"] == "Buyer_One"
+    assert calls[0][1] == {"username": "Buyer_One"}                              # only the username goes to the server (no @)
+    assert client.post("/api/inner/check").json()["paid"] is False
+    done = client.post("/api/inner/check").json()
+    assert done["paid"] and done["link"] == "https://t.me/+ABCDEF"
+    assert client.get("/api/inner").json()["link"] == "https://t.me/+ABCDEF"                                  # kept so it can be shown again
+    n = len(calls); assert client.post("/api/inner/check").json()["link"]; assert len(calls) == n          # no new server call once paid
+    client.post("/api/inner/reset"); assert client.get("/api/inner").json()["link"] is None
+
+
+def test_inner_circle_refuses_odd_server_answers(monkeypatch):
+    from iris import inner
+    monkeypatch.setattr(inner, "API", "https://inner.example.workers.dev")
+    bad = [{"reference": REF, "nonce": "n", "recipient": REC, "lamports": 9_000_000_000}, {"reference": "x", "nonce": "n", "recipient": REC, "lamports": 1},
+           {"reference": REF, "nonce": "n", "recipient": "not an address", "lamports": 1}, {}]
+    for answer in bad:
+        monkeypatch.setattr(inner.net, "request", lambda m, u, _a=answer, **kw: _a)
+        assert client.post("/api/inner/start", json={"username": "Buyer_One"}).status_code == 400
+    _fake_server(monkeypatch, link="http://evil.example/x")
+    client.post("/api/inner/start", json={"username": "Buyer_One"})
+    assert client.post("/api/inner/check").json()["link"] is None                # only real Telegram links are accepted
+    assert client.post("/api/inner/check", headers={"host": "evil.example"}).status_code == 403
+
+
+def test_inner_circle_page_wiring():
+    html = client.get("/").text
+    assert 'id="innerBtn"' in html and "JOIN INNER CIRCLE" in html and 'id="inner"' in html and "/static/inner.js" in html
+    assert html.index('id="innerBtn"') < html.index('id="connBtn"')                # next to README and Connections
+    js, don = client.get("/static/inner.js").text, client.get("/static/donate.js").text
+    assert "DONATE.payTo(" in js and "/api/inner/start" in js and "/api/inner/check" in js
+    assert "function buildTx(from, to, blockhash, lam, ref)" in don and "async function payTo(" in don

@@ -132,6 +132,7 @@ iris/market.py          market news, data releases, calendar and mood (free publ
 web/market.js           the MARKET PULSE panel and its spoken alerts
 iris/shortcut.py       the desktop icon (Windows / macOS / Linux)
 iris/donate.py         the optional donation link (SOL)
+iris/inner.py          the optional paid Telegram inner circle (see below)
 web/orb3d.js            the COSMIC orb (WebGL + canvas); web/orb.js is the classic one
 iris/say.py            speaks through the computer's own voice when the browser blocks speech
 web/                    the dashboard (plain HTML, CSS and JavaScript; no build step)
@@ -149,6 +150,12 @@ The **COSMIC** orb is a live picture of what Iris is doing: a plasma core with a
 ## Support the development (optional)
 
 Iris is free. Once you have connected something (an account, a wallet, your social accounts or your Claude key) or turned on the demo data, a small **♥ SUPPORT DEVELOPMENT** button appears at the bottom of the page. It opens a short form: type how much SOL you want to give and press **DONATE WITH PHANTOM**. Phantom (or another Solana wallet) pops up, shows you the amount and the address, and only sends if *you* approve. Iris never sees a key and never sends anything by itself. No wallet extension? Use the wallet link or copy the address: `39oAW7hrufjNi6tm7bS35n3uRaxavV4hMD19y6UKyusU`. It also shows while the demo data is on, so you can try the form (the payment itself is real, so only press the final approve in your wallet if you mean it).
+
+### Join the inner circle (optional)
+
+The **★ JOIN INNER CIRCLE** button in the header (next to README and Connections) opens a private Telegram group run by the developer. You type your Telegram username, pay **0.2 SOL** with your own wallet (Phantom or any Solana wallet; you approve the amount and address), and when the payment is confirmed on the Solana chain your private invite link appears in the window. The link is made only for your @username: the group's bot lets in that person and nobody else, so a shared link is useless to others. Iris sends the server only your Telegram username and a random payment code. No key or balance leaves your computer.
+
+*For the person who publishes Iris:* the payment check and the Telegram bot run on a tiny free server you set up once. It is in the `Iris_innercircle_server` folder with step-by-step instructions. After you set it up, paste its address into `iris/inner.py` (the line `API = ...`) before you publish. Until then the window shows "not open yet". The invite link and the bot token are never stored in Iris or on GitHub.
 
 ## Disclaimer
 

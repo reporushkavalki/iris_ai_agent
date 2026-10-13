@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from iris import __version__, connections, donate, guide, market, portfolio, prefs, prices, providers, say, shortcut, socials, vault
+from iris import __version__, connections, donate, guide, inner, market, portfolio, prefs, prices, providers, say, shortcut, socials, vault
 from iris.chains import wallets_store
 from iris.config import ROOT, WEB_DIR
 from iris.help_text import HELP
@@ -88,6 +88,7 @@ def status(force: bool = False):
     st["say_error"] = say.LAST_ERROR
     st["boot"] = BOOT
     st["donate"] = donate.ADDRESS if donate.available(st) else None
+    st["inner"] = inner.info()
     st["shortcut_error"] = shortcut.LAST["message"] if shortcut.LAST and not shortcut.LAST["ok"] else None
     return st
 
@@ -351,6 +352,37 @@ def donate_blockhash():
         return donate.blockhash()
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=vault.scrub(str(e)) or "could not reach the Solana network")
+
+
+class InnerStart(BaseModel):
+    username: str = Field(max_length=64)
+
+
+@app.get("/api/inner")
+def inner_info():
+    return inner.info()
+
+
+@app.post("/api/inner/start")
+def inner_start(b: InnerStart):
+    try:
+        return inner.start(b.username)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=vault.scrub(str(e)) or "could not start")
+
+
+@app.post("/api/inner/check")
+def inner_check():
+    try:
+        return inner.check()
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=vault.scrub(str(e)) or "could not check the payment")
+
+
+@app.post("/api/inner/reset")
+def inner_reset():
+    inner.reset()
+    return {"ok": True}
 
 
 @app.get("/api/health")

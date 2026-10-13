@@ -6,7 +6,7 @@ import threading
 from iris.config import PREFS_FILE
 
 _lock = threading.RLock()
-DEFAULTS = {"demo": False}
+DEFAULTS = {"demo": False, "inner": None}
 
 
 def load() -> dict:

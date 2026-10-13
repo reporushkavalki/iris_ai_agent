@@ -21,6 +21,7 @@
       <button type="button" id="themeBtn" title="Change the colour theme (click for the next one)">THEME</button>
       <button type="button" id="layoutBtn" title="Choose what comes first on the page">CHARTS FIRST</button>
       <a class="hlink" href="/help" target="_blank" rel="noopener" title="Open the README / how-to guide">README</a>
+      <button type="button" id="innerBtn" class="innerbtn" title="Join the private Iris inner circle on Telegram">&#9733; JOIN INNER CIRCLE</button>
       <button type="button" id="connBtn" title="API keys, wallets and social accounts">CONNECTIONS</button>
     </div>
     <div class="meta"><span id="status">ONLINE</span><span id="clock"></span></div>
@@ -165,10 +166,43 @@
   </div>
 </div>
 
+<div id="inner" class="modal infomodal" hidden>
+  <div class="mbox ibox" role="dialog" aria-modal="true" aria-labelledby="inTitle">
+    <div class="mhead"><div class="ptitle" id="inTitle">JOIN THE INNER CIRCLE</div><div class="sp"></div><button type="button" id="inClose" aria-label="Close">CLOSE &#10005;</button></div>
+    <!-- the advert text: edit it here -->
+    <div id="inAd">
+      <p><strong>The Iris Inner Circle</strong> is a private Telegram group run by the developer of Iris.</p>
+      <ul class="inlist">
+        <li>Early access to new features, before they reach everyone</li>
+        <li>Direct answers to your questions about Iris</li>
+        <li>A say in what Iris gets next</li>
+      </ul>
+      <p class="inprice"><b>0.2 SOL</b> &middot; one payment, no subscription</p>
+    </div>
+    <div id="inBuy">
+      <h4>YOUR TELEGRAM USERNAME</h4>
+      <div class="donrow"><input id="inUser" type="text" autocomplete="off" spellcheck="false" maxlength="33" placeholder="@yourname" aria-label="Your Telegram username"></div>
+      <p class="small">Your invite link is made for this username only. Nobody else can join with it, even if it gets shared. (Telegram: Settings &rarr; Username. You need one.)</p>
+      <div class="donrow"><button type="button" id="inGo" class="cta">PAY 0.2 SOL WITH PHANTOM</button></div>
+      <div id="inMsg" class="donmsg" role="status"></div>
+      <p class="small"><a id="inUri" href="#">Pay from a wallet app on your phone</a> &middot; <a id="inPaid" href="#" hidden>I already paid, check again</a></p>
+      <p class="small">Your wallet always shows the amount and the address and asks you to approve. Only your Telegram username and a random payment code are sent to the Iris server; your wallet and your balances are not.</p>
+    </div>
+    <div id="inDone" hidden>
+      <h4>YOU ARE IN</h4>
+      <p>Your private invite link, made for <strong id="inWho"></strong>:</p>
+      <div class="donaddr"><code id="inLink"></code><button type="button" id="inCopy">COPY</button></div>
+      <div class="donrow"><a id="inOpen" class="cta" href="#" target="_blank" rel="noopener noreferrer">OPEN IN TELEGRAM</a></div>
+      <p class="small">Tap the link, then press <b>Request to join</b>. You are let in automatically within a few seconds. The link works only for your own username.</p>
+    </div>
+  </div>
+</div>
+
 <script src="/static/orb3d.js"></script>
 <script src="/static/orb.js"></script>
 <script src="/static/app.js"></script>
 <script src="/static/donate.js"></script>
+<script src="/static/inner.js"></script>
 <script src="/static/live.js"></script>
 <script src="/static/market.js"></script>
 </body>
