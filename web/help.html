@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iris · README</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cdefs%3E%3CradialGradient id=%27g%27%3E%3Cstop offset=%27.3%27 stop-color=%27%23063ea8%27/%3E%3Cstop offset=%27.7%27 stop-color=%27%231478f5%27/%3E%3Cstop offset=%271%27 stop-color=%27%2378dcff%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%2340e0ff%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27url(%23g)%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274.6%27 fill=%27%23000%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap">
+<style>
+:root{--c:#14f195;--c-rgb:20,241,149;--c2:#9945ff;--c3:#00c2ff;--text:#e6ecff;--dim:#8a93b8;--line:rgba(153,69,255,.34);--panel:rgba(23,14,47,.78);--code:rgba(15,9,32,.9)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Rajdhani,"Segoe UI",system-ui,sans-serif;font-size:17px;line-height:1.5;color:var(--text);background:radial-gradient(ellipse at 50% 12%,#240f47 0%,#110b25 48%,#05030d 100%);background-attachment:fixed;min-height:100vh}
+.wrap{max-width:860px;margin:0 auto;padding:22px 20px 60px}
+.top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.top .brand{font-family:Orbitron,sans-serif;font-weight:700;letter-spacing:.4em;font-size:16px;background:linear-gradient(90deg,var(--c),var(--c3) 55%,var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(var(--c-rgb),.35))}
+.top .sp{flex:1}
+.top a{font-family:Orbitron,sans-serif;font-size:10px;letter-spacing:.16em;padding:6px 12px;border:1px solid var(--line);border-radius:3px;color:var(--text);text-decoration:none;background:var(--panel)}
+.top a:hover{border-color:var(--c);box-shadow:0 0 12px rgba(var(--c-rgb),.25)}
+#doc h1{font-family:Orbitron,sans-serif;letter-spacing:.3em;font-size:26px;margin:6px 0 10px;background:linear-gradient(90deg,var(--c),var(--c3) 60%,var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 10px rgba(var(--c-rgb),.3))}
+#doc h2{font-family:Orbitron,sans-serif;letter-spacing:.18em;font-size:15px;margin:28px 0 10px;color:#fff;padding-left:11px;border-left:3px solid var(--c);text-shadow:0 0 10px rgba(var(--c-rgb),.35)}
+#doc h3{font-size:19px;margin:18px 0 6px;color:var(--c3)}
+#doc p{margin:8px 0}
+#doc ul,#doc ol{margin:8px 0 8px 24px}
+#doc li{margin:3px 0}
+#doc li::marker{color:var(--c2)}
+#doc strong{color:#fff}
+#doc a{color:var(--c);text-decoration-color:rgba(var(--c-rgb),.4)}
+#doc a:hover{color:var(--c3)}
+#doc hr{border:0;height:1px;background:linear-gradient(90deg,var(--c),var(--c2),transparent);opacity:.55;margin:22px 0}
+#doc code{font-family:Consolas,monospace;font-size:.92em;color:var(--c);background:var(--code);border:1px solid rgba(153,69,255,.25);padding:1px 5px;border-radius:3px}
+#doc pre{background:var(--code);border:1px solid var(--line);border-left:3px solid var(--c2);border-radius:6px;padding:12px;overflow-x:auto;margin:10px 0}
+#doc pre code{background:none;border:0;padding:0;font-size:14px;line-height:1.35;color:var(--text)}
+#doc img{max-width:100%;border:1px solid var(--line);border-radius:6px;margin:10px 0;box-shadow:0 0 22px rgba(153,69,255,.18)}
+#doc table{border-collapse:collapse;width:100%;margin:10px 0;font-size:15px;display:block;overflow-x:auto}
+#doc th,#doc td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+#doc th{background:linear-gradient(90deg,rgba(var(--c-rgb),.16),rgba(153,69,255,.22));color:#fff}
+#doc tr:nth-child(even) td{background:rgba(153,69,255,.06)}
+.sponsors{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);font-family:Orbitron,sans-serif;font-size:9px;letter-spacing:.16em;color:var(--dim);text-align:center;line-height:1.9}
+.sponsors a{color:var(--c);text-decoration:none;margin:0 3px}
+.sponsors a:hover{color:var(--c3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">IRIS</div><div class="sp"></div><a href="/">&larr; BACK TO DASHBOARD</a></div>
+  <div id="doc">Loading&hellip;</div>
+  <div class="sponsors">SPONSORED BY
+    <a href="https://promo.chartinginteractive.io" target="_blank" rel="sponsored noopener noreferrer">chartinginteractive.io</a> //
+    <a href="https://solanasniper.ai" target="_blank" rel="sponsored noopener noreferrer">solanasniper.ai</a> //
+    <a href="https://wicksync.io" target="_blank" rel="sponsored noopener noreferrer">wicksync.io</a></div>
+</div>
+<script>
+/* Tiny, safe markdown renderer for our own README: everything is HTML-escaped first, and only a few patterns are turned back into tags. */
+const esc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safeUrl = u => /^(https:\/\/|\/|#)/.test(u) && !/^\/\//.test(u) ? u : null;      // https, same-site paths or anchors only
+const safeImg = u => /^\/?docs\/[\w.-]+$/.test(u) ? (u[0] === '/' ? u : '/' + u) : null;  // only the bundled screenshots
+
+function inline(t) {
+  const codes = [];
+  t = t.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000' });
+  t = esc(t);
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (m, alt, u) => { const s = safeImg(u.replace(/&amp;/g, '&')); return s ? `<img src="${s}" alt="${alt}">` : '' });
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, u) => {
+    const s = safeUrl(u.replace(/&amp;/g, '&')); if (!s) return txt;
+    return /^https:/.test(s) ? `<a href="${s}" target="_blank" rel="noopener noreferrer">${txt}</a>` : `<a href="${s}">${txt}</a>`;
+  });
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
+  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${esc(codes[+i])}</code>`);
+}
+
+function render(md) {
+  const lines = md.replace(/\r/g, '').split('\n'), out = []; let i = 0;
+  const cells = l => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^```/.test(l)) { const b = []; i++; while (i < lines.length && !/^```/.test(lines[i])) b.push(lines[i++]); i++; out.push(`<pre><code>${esc(b.join('\n'))}</code></pre>`); continue }
+    if (/^\s*$/.test(l)) { i++; continue }
+    if (/^---+\s*$/.test(l)) { out.push('<hr>'); i++; continue }
+    let m = l.match(/^(#{1,3})\s+(.*)$/); if (m) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++; continue }
+    if (/^\|/.test(l) && i + 1 < lines.length && /^\|?\s*:?-{3,}/.test(lines[i + 1])) {
+      const head = cells(l); i += 2; const rows = [];
+      while (i < lines.length && /^\|/.test(lines[i])) rows.push(cells(lines[i++]));
+      out.push('<table><thead><tr>' + head.map(c => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>' + rows.map(r => '<tr>' + r.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>'); continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s+/.test(l)) {
+      const ordered = /^\s*\d+\./.test(l), items = [];
+      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
+        let t = lines[i].replace(/^\s*([-*]|\d+\.)\s+/, ''); i++;
+        while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*]|\d+\.)\s+/.test(lines[i])) t += ' ' + lines[i++].trim();
+        const subs = [];
+        while (i < lines.length && /^\s{2,}[-*]\s+/.test(lines[i])) subs.push(lines[i++].replace(/^\s+[-*]\s+/, ''));
+        items.push(`<li>${inline(t)}${subs.length ? '<ul>' + subs.map(s => `<li>${inline(s)}</li>`).join('') + '</ul>' : ''}</li>`);
+      }
+      out.push(`<${ordered ? 'ol' : 'ul'}>${items.join('')}</${ordered ? 'ol' : 'ul'}>`); continue;
+    }
+    const p = []; while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,3}\s|```|---+\s*$|\|)/.test(lines[i]) && !/^\s*([-*]|\d+\.)\s+/.test(lines[i])) p.push(lines[i++]);
+    if (!p.length) { p.push(lines[i++]) }
+    out.push(`<p>${inline(p.join(' '))}</p>`);
+  }
+  return out.join('\n');
+}
+
+fetch('/readme.md').then(r => { if (!r.ok) throw 0; return r.text() })
+  .then(t => { document.getElementById('doc').innerHTML = render(t) })
+  .catch(() => { document.getElementById('doc').textContent = 'The README could not be loaded. It is the README.md file in the Iris folder.' });
+</script>
+</body>
+</html>

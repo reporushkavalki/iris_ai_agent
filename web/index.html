@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Iris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cdefs%3E%3CradialGradient id=%27g%27%3E%3Cstop offset=%27.3%27 stop-color=%27%23063ea8%27/%3E%3Cstop offset=%27.7%27 stop-color=%27%231478f5%27/%3E%3Cstop offset=%271%27 stop-color=%27%2378dcff%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2715%27 fill=%27%2340e0ff%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2713%27 fill=%27url(%23g)%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%274.6%27 fill=%27%23000%27/%3E%3C/svg%3E">
+<script>try{var t=localStorage.getItem("nx_theme2")||"solana";if(t!=="cyan")document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="solana"}</script>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/market.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">IRIS</div>
+    <div class="hexes" id="hexes"></div>
+    <div class="hbtns">
+      <button type="button" id="themeBtn" title="Change the colour theme (click for the next one)">THEME</button>
+      <button type="button" id="layoutBtn" title="Choose what comes first on the page">CHARTS FIRST</button>
+      <a class="hlink" href="/help" target="_blank" rel="noopener" title="Open the README / how-to guide">README</a>
+      <button type="button" id="connBtn" title="API keys, wallets and social accounts">CONNECTIONS</button>
+    </div>
+    <div class="meta"><span id="status">ONLINE</span><span id="clock"></span></div>
+  </header>
+
+  <div id="demoBanner" class="banner" hidden>DEMO DATA &mdash; everything you see is made up. <button type="button" class="mini" id="demoOff">EXIT DEMO</button></div>
+
+  <section id="welcome" class="panel welcome" hidden>
+    <div class="ptitle">WELCOME TO IRIS</div>
+    <p>Your crypto control room, running only on this computer. Connect what you use; every section appears as soon as it has data.</p>
+    <ol>
+      <li><b>Press TRY DEMO DATA</b> to look around with made-up numbers (nothing real is read).</li>
+      <li><b>Open Connections</b> and add a <b>read-only</b> exchange API key, or paste a <b>public</b> wallet address.</li>
+      <li>Optionally add your <b>social accounts</b> to track followers, likes and views.</li>
+      <li>Add your <b>Claude API key</b> to chat with Iris about your numbers.</li>
+    </ol>
+    <div class="wbtns"><button type="button" id="wOpen">OPEN CONNECTIONS</button><button type="button" id="wDemo">TRY DEMO DATA</button><button type="button" id="wHear" title="Iris reads the welcome out loud">&#9654; HEAR THE INTRO</button></div>
+    <div class="sub">Never paste a seed phrase or private key anywhere. Iris only ever reads.</div>
+  </section>
+
+  <main id="main">
+    <div class="col">
+      <section class="panel" data-sec="balance"><div class="ptitle phead"><span>TOTAL BALANCE</span><button type="button" class="mini" id="resetBtn" title="Start the PnL numbers and charts fresh from now">RESET PNL</button></div><div id="pf"><div class="sub">Loading&hellip;</div></div></section>
+      <section class="panel" data-sec="accounts"><div class="ptitle">ACCOUNTS</div><div id="accts"><div class="sub">Loading&hellip;</div></div></section>
+    </div>
+
+    <div class="center">
+      <div class="stage" id="stage">
+        <div class="mer"></div><div class="eq"></div>
+        <div class="rp"></div><div class="rp"></div><div class="rp"></div>
+        <div class="orb"></div>
+        <canvas id="fx" aria-hidden="true"></canvas>
+      </div>
+    </div>
+
+    <div class="col">
+      <section class="panel" data-sec="allocation">
+        <div class="ptitle phead"><span>ALLOCATION</span><span class="stabs" id="allocMode"><button type="button" class="stab" data-m="assets">ASSETS</button><button type="button" class="stab" data-m="accounts">ACCOUNTS</button></span></div>
+        <div id="alloc"><div class="sub">Loading&hellip;</div></div>
+      </section>
+      <section class="panel" data-sec="markets"><div class="ptitle">MARKETS &middot; 24H</div><div id="mkts"><div class="sub">Loading&hellip;</div></div></section>
+    </div>
+  </main>
+
+  <div id="wide" class="wide">
+    <section class="panel" id="sec-portfolio" data-sec="portfolio">
+      <div class="shead"><div class="ptitle">PORTFOLIO</div><div class="live" id="plive">LIVE</div><div class="sp"></div></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="smain">
+        <div class="chartbox">
+          <div class="chead">
+            <div class="ctitle">TOTAL BALANCE OVER TIME</div><div class="sp"></div>
+            <div class="stabs" id="range"><button type="button" class="stab" data-r="1d">DAY</button><button type="button" class="stab" data-r="1w">WEEK</button><button type="button" class="stab" data-r="1m">MONTH</button><button type="button" class="stab" data-r="3m">3 MONTHS</button></div>
+          </div>
+          <div class="cwrap"><div id="chart"></div><div class="ctip" id="ctip"></div></div>
+        </div>
+        <div class="sright">
+          <div class="sbox posbox"><div class="ptitle phead"><span>OPEN POSITIONS</span><span id="posinfo"></span></div><div id="pos"><div class="sub">Loading&hellip;</div></div></div>
+          <div class="sbox calbox"><div class="ptitle phead"><span>DAILY CHANGE <em id="calTot"></em></span><span class="cnav"><button type="button" class="mini" id="calPrev" aria-label="Previous month">&#9664;</button><b id="calLabel"></b><button type="button" class="mini" id="calNext" aria-label="Next month">&#9654;</button></span></div><div id="cal"><div class="sub">Loading&hellip;</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="sec-holdings" data-sec="holdings">
+      <div class="ptitle phead"><span>HOLDINGS &middot; ALL ACCOUNTS COMBINED</span><button type="button" class="mini" id="holdMore">SHOW ALL</button></div>
+      <div id="hold"><div class="sub">Loading&hellip;</div></div>
+    </section>
+
+    <div class="socrow">
+      <section class="panel" id="sec-socials" data-sec="socials">
+        <div class="shead"><div class="ptitle">SOCIALS</div><div class="live" id="socinfo"></div><div class="sp"></div><button type="button" class="mini" id="socAdd">+ ADD ACCOUNT</button></div>
+        <div id="soc"><div class="sub">Loading&hellip;</div></div>
+      </section>
+      <section class="panel" id="sec-market" data-sec="market">
+        <div class="shead"><div class="ptitle">MARKET PULSE</div><div class="live" id="mkinfo">LOADING</div><div class="sp"></div></div>
+        <div id="mkmood"><div class="sub">Loading&hellip;</div></div>
+        <div class="stabs mk-tabs" id="mkTabs"><button type="button" class="stab" data-t="news">NEWS &amp; DATA</button><button type="button" class="stab" data-t="events">CALENDAR</button><button type="button" class="stab" data-t="talk">TRENDING</button></div>
+        <div class="mk-scroll" id="mkbody"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <div class="caption"><div id="you"></div><div id="reply"></div><div id="note"></div></div>
+    <div class="sugg" id="sugg" aria-label="Suggested questions"></div>
+    <form class="bar" id="form">
+      <button type="button" id="gear" title="View &amp; voice" aria-label="View and voice settings" aria-expanded="false">&#9881;</button>
+      <button type="button" id="mute" title="Stop talking (Esc)" aria-label="Stop talking"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor" fill-opacity=".25"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg></button>
+      <div class="pop" id="pop" hidden>
+        <div class="poprow"><button type="button" id="vbtn">VOICE: OFF</button><select id="vsel" aria-label="Voice"></select></div>
+        <div class="poprow"><button type="button" id="alBtn" title="Announce important changes out loud and highlight them: big balance moves, positions opening or closing, liquidation risk, accounts failing, follower milestones">ALERTS: ON</button></div>
+        <div class="poprow"><button type="button" id="mkBtn" title="Say important market news and data releases out loud the moment they come out, and warn before big events such as Fed meetings and CPI">MARKET ALERTS: ON</button></div>
+        <div class="poprow"><button type="button" id="orbBtn" title="Switch the orb between the new COSMIC look and the CLASSIC one">ORB: COSMIC</button></div>
+        <div class="poprow"><button type="button" id="scBtn" title="Put an Iris icon on your Windows Desktop" hidden>ADD DESKTOP ICON</button></div>
+        <div class="poptitle">COLOUR THEME <span id="themeName"></span></div>
+        <div class="swatches" id="themes" role="group" aria-label="Colour theme"></div>
+        <div class="poptitle">SHOW SECTIONS</div>
+        <div class="poprow wrap" id="views"></div>
+      </div>
+      <input id="msg" autocomplete="off" maxlength="2000" placeholder="Ask Iris about your portfolio&hellip;" aria-label="Message Iris">
+      <button type="submit">SEND</button>
+    </form>
+    <div class="sponsors">SPONSORED BY
+      <a href="https://promo.chartinginteractive.io" target="_blank" rel="sponsored noopener noreferrer">chartinginteractive.io</a> //
+      <a href="https://solanasniper.ai" target="_blank" rel="sponsored noopener noreferrer">solanasniper.ai</a> //
+      <a href="https://wicksync.io" target="_blank" rel="sponsored noopener noreferrer">wicksync.io</a>
+      <button type="button" id="donBtn" class="donbtn" title="Support the development of Iris with a small SOL donation" hidden>&#9829; SUPPORT DEVELOPMENT</button></div>
+  </footer>
+</div>
+
+<div id="modal" class="modal" hidden>
+  <div class="mbox" role="dialog" aria-modal="true" aria-label="Connections">
+    <div class="mhead"><div class="ptitle">CONNECTIONS</div><div class="sp"></div><button type="button" id="mclose" aria-label="Close">CLOSE &#10005;</button></div>
+    <div class="safety"><b>Stays on this computer.</b> Keys are saved in the <code>data</code> folder next to the app and are sent only to the service they belong to. Use <b>read-only</b> keys. Never paste a seed phrase or private key.</div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<div id="info" class="modal infomodal" hidden>
+  <div class="mbox ibox" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="mhead"><div class="ptitle" id="infoTitle">HOW IT WORKS</div><div class="sp"></div><button type="button" id="iclose" aria-label="Close">CLOSE &#10005;</button></div>
+    <div id="ibody"></div>
+  </div>
+</div>
+
+<div id="donate" class="modal infomodal" hidden>
+  <div class="mbox ibox" role="dialog" aria-modal="true" aria-labelledby="donTitle">
+    <div class="mhead"><div class="ptitle" id="donTitle">SUPPORT DEVELOPMENT</div><div class="sp"></div><button type="button" id="donClose" aria-label="Close">CLOSE &#10005;</button></div>
+    <p>Iris is free. If it helps you, you can send a small amount of <strong>SOL</strong> to the developer. It is completely optional, and you choose the amount.</p>
+    <h4>AMOUNT (SOL)</h4>
+    <div class="donrow">
+      <input id="donAmt" type="text" inputmode="decimal" autocomplete="off" placeholder="e.g. 0.1" aria-label="Amount in SOL">
+      <button type="button" class="chip" data-amt="0.05">0.05</button><button type="button" class="chip" data-amt="0.1">0.1</button>
+      <button type="button" class="chip" data-amt="0.5">0.5</button><button type="button" class="chip" data-amt="1">1</button>
+    </div>
+    <div class="donrow"><button type="button" id="donGo" class="cta">DONATE WITH PHANTOM</button></div>
+    <div id="donMsg" class="donmsg" role="status"></div>
+    <h4>OTHER WAYS</h4>
+    <p class="small">Your wallet always shows the amount and the address and asks you to approve. Check that the address matches:</p>
+    <div class="donaddr"><code id="donAddr"></code><button type="button" id="donCopy">COPY</button></div>
+    <p class="small"><a id="donUri" href="#">Open in any Solana wallet app</a> &middot; no wallet extension? Get <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer">Phantom</a>.</p>
+  </div>
+</div>
+
+<script src="/static/orb3d.js"></script>
+<script src="/static/orb.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/donate.js"></script>
+<script src="/static/live.js"></script>
+<script src="/static/market.js"></script>
+</body>
+</html>
