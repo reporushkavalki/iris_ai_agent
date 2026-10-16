@@ -34,7 +34,7 @@ You need **Python 3.10 or newer** ([python.org/downloads](https://www.python.org
 4. Click **CONNECTIONS** and add what you want, or click **TRY DEMO DATA** to look around first. Press the small **(i)** next to any key, wallet or social to see exactly how to get it.
 5. This guide is also inside the app: press **README** in the top bar.
 
-To stop it, close the window (or press `Ctrl+C`). Your settings and history stay in the `data` folder.
+To stop it, close the window (or press `Ctrl+C`). Your settings and history stay in the `data` folder. To move to a new copy of Iris, copy that folder over (or run `python app.py --import-data "<old data folder>"`); an existing file is never overwritten.
 After updating to a newer version, delete the `.venv` folder once so the packages refresh.
 
 ![Connections](docs/connections.png)
@@ -86,8 +86,8 @@ PnL is *the change in your balance* over the period (per account, summed). Iris 
 ## Safety: what is stored, and where
 
 - Everything stays on **your computer**. The app listens on `127.0.0.1` only and rejects requests from other websites. **Never expose it to the internet.**
-- Keys are saved in **`data/vault.json`**. It is plain JSON (not encrypted), readable by anyone who can open your user account's files. **Don't zip, share, sync or commit the `data` folder.** It is already in `.gitignore`.
-- Once saved, a key is **locked**: the screen only shows a masked hint (`••••a1b2`), and it can't be replaced or removed until you click *Unlock*. This prevents accidents; it is not encryption.
+- Keys are saved in **`data/vault.json`** on your computer, nowhere else. **On Windows the file is encrypted with your Windows account** (it only opens for you, on this PC; a copy on another PC or account is unreadable and Iris keeps it aside instead of overwriting it). On macOS and Linux it is a plain file that only your user can read. **Don't zip, share, sync or commit the `data` folder.** It is already in `.gitignore`.
+- Once saved, a key is **locked**: the screen only shows a masked hint (`••••a1b2`), and it can't be replaced or removed until you click *Unlock*. This prevents accidents; the encryption above is what protects the file itself.
 - Keys are sent only to the service they belong to (your exchange, Anthropic, Google, ...). The Iris page never gets a secret back from the server.
 - Use **read-only** keys and, where the exchange allows, **restrict them to your IP address**.
 - **Never paste a seed phrase or private key anywhere.** The wallet form rejects anything that looks like one.

@@ -14,6 +14,7 @@ const INNER = (() => {
     const r = await api('/api/inner/check', {});
     if (r.paid && r.link) { showLink(r.link, r.username); return true }
     if (r.paid && !r.link) { stopPoll(); msg(r.note || 'Payment received, but the link could not be made. Tell the Iris developer.', 'err'); return true }
+    if (r.note) msg(String(r.note).slice(0, 220), '');          // what the server sees (for example "a payment was seen, confirming"), instead of silence
     return false;
   }
   function waitForPayment() {

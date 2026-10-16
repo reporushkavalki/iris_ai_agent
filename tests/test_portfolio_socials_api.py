@@ -550,4 +550,5 @@ def test_inner_circle_page_wiring():
     assert html.index('id="innerBtn"') < html.index('id="connBtn"')                # next to README and Connections
     js, don = client.get("/static/inner.js").text, client.get("/static/donate.js").text
     assert "DONATE.payTo(" in js and "/api/inner/start" in js and "/api/inner/check" in js
+    assert "if (r.note) msg(" in js                                                  # the server's explanation is shown while waiting
     assert "function buildTx(from, to, blockhash, lam, ref)" in don and "async function payTo(" in don

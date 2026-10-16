@@ -357,7 +357,7 @@ function renderAll() {
   renderTotal(); renderAccounts(); renderAlloc(); renderTiles(); renderPositions(); renderHoldings();
 }
 async function refreshStatus(force) {
-  try { ST = await api('/api/status' + (force ? '?force=true' : '')); offline = false; renderAll(); if ((ST.shortcut_error || ST.say_error) && !window.__scNote) { window.__scNote = 1; $('#note').textContent = ST.say_error || ST.shortcut_error } if (typeof maybeIntro === 'function') maybeIntro(); if (typeof LIVE !== 'undefined') LIVE.onStatus() } catch (e) { offline = true }
+  try { ST = await api('/api/status' + (force ? '?force=true' : '')); offline = false; renderAll(); if ((ST.vault_error || ST.shortcut_error || ST.say_error) && !window.__scNote) { window.__scNote = 1; $('#note').textContent = ST.vault_error || ST.say_error || ST.shortcut_error } if (typeof maybeIntro === 'function') maybeIntro(); if (typeof LIVE !== 'undefined') LIVE.onStatus() } catch (e) { offline = true }
   statusText();
 }
 function everything() { refreshStatus(); loadHistory(); loadCalendar(); loadMarkets(); loadSocials() }

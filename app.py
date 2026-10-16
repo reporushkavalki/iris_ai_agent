@@ -3,21 +3,23 @@
 Everything runs on YOUR computer. The server only listens on 127.0.0.1 and rejects requests from other websites.
 Don't expose it to the internet.
 """
+import hmac
 import os
 import socket
+import sys
 import threading
 import time
 import webbrowser
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from iris import __version__, connections, donate, guide, inner, market, portfolio, prefs, prices, providers, say, shortcut, socials, vault
 from iris.chains import wallets_store
-from iris.config import ROOT, WEB_DIR
+from iris.config import DATA_DIR, PACKAGED, ROOT, WEB_DIR, import_data, import_legacy_if_new
 from iris.help_text import HELP
 
 
@@ -34,6 +36,9 @@ BOOT = int(time.time())          # changes at every start, so the welcome can pl
 PORT = int(os.getenv("IRIS_PORT") or _free_port())
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 ALLOWED_ORIGINS = {f"http://{h}" for h in ALLOWED_HOSTS}
+# Desktop app: the launcher gives the window a secret that other programs and other Windows users on this PC don't have.
+TOKEN = os.getenv("IRIS_TOKEN", "").strip()
+COOKIE = "iris_t"
 
 app = FastAPI(title="Iris", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -41,9 +46,16 @@ app = FastAPI(title="Iris", version=__version__, docs_url=None, redoc_url=None, 
 @app.middleware("http")
 async def local_only(request: Request, call_next):
     """The API exposes balances and chat. Refuse other websites (CSRF) and DNS-rebinding tricks."""
+    if TOKEN and request.url.path == "/" and hmac.compare_digest(request.query_params.get("t", ""), TOKEN) \
+            and request.headers.get("host") in ALLOWED_HOSTS:
+        r = RedirectResponse("/", status_code=303)          # hand the window its cookie, then drop the token from the address
+        r.set_cookie(COOKIE, TOKEN, httponly=True, samesite="strict", path="/")
+        return r
     if request.url.path.startswith("/api/"):
         origin = request.headers.get("origin")
         if request.headers.get("host") not in ALLOWED_HOSTS or (origin and origin not in ALLOWED_ORIGINS):
+            return JSONResponse({"detail": "forbidden"}, status_code=403)
+        if TOKEN and not hmac.compare_digest(request.cookies.get(COOKIE, ""), TOKEN):
             return JSONResponse({"detail": "forbidden"}, status_code=403)
     resp = await call_next(request)
     resp.headers["Cache-Control"] = "no-store"
@@ -87,6 +99,8 @@ def status(force: bool = False):
     st["can_say"] = say.supported()
     st["say_error"] = say.LAST_ERROR
     st["boot"] = BOOT
+    vault._load()
+    st["vault_error"] = vault.PROBLEM["message"] or None
     st["donate"] = donate.ADDRESS if donate.available(st) else None
     st["inner"] = inner.info()
     st["shortcut_error"] = shortcut.LAST["message"] if shortcut.LAST and not shortcut.LAST["ok"] else None
@@ -390,12 +404,36 @@ def health():
     return {"ok": True, "version": __version__}
 
 
+def _cli() -> bool:
+    """`python app.py --import-data "<old data folder>"` copies an older data folder in, then exits."""
+    if "--import-data" not in sys.argv:
+        return False
+    i = sys.argv.index("--import-data")
+    if i + 1 >= len(sys.argv):
+        print('Usage: python app.py --import-data "<folder>"')
+        return True
+    try:
+        res = import_data(sys.argv[i + 1])
+    except (OSError, ValueError) as e:
+        print(f"Could not import: {e}")
+        return True
+    print(f"Copied into {DATA_DIR}: {', '.join(res['copied']) or 'nothing'}")
+    if res["skipped"]:
+        print(f"Kept what was already there (not overwritten): {', '.join(res['skipped'])}")
+    return True
+
+
 if __name__ == "__main__":
-    if PORT != 8765:
+    if _cli():
+        sys.exit(0)
+    moved = import_legacy_if_new()
+    if moved and moved["copied"]:
+        print(f"Brought your earlier data into {DATA_DIR}")
+    if PORT != 8765 and not os.getenv("IRIS_PORT"):
         print(f"Note: port 8765 is in use, so Iris is using port {PORT}.")
-    if not os.getenv("NO_BROWSER"):
+    if not os.getenv("NO_BROWSER") and not PACKAGED:
         threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{PORT}")).start()
-    sc = shortcut.ensure()           # Windows: put a "Iris" icon on the Desktop (once)
+    sc = None if PACKAGED else shortcut.ensure()     # Windows: put a "Iris" icon on the Desktop (once); the installer does that itself
     if sc:
         print(sc["message"])
     print(f"Iris is running: http://127.0.0.1:{PORT}   (press Ctrl+C to stop)")
