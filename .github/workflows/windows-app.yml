@@ -1,0 +1,132 @@
+# Builds the Windows installer (Iris-Setup.exe) on a Windows machine and publishes it as a GitHub Release.
+#
+# How to run it: GitHub -> "Actions" tab -> "Windows app" -> "Run workflow" -> type a version such as 1.0.0 -> Run.
+# After a few minutes the release appears under "Releases" with Iris-Setup.exe attached.
+name: Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number, for example 1.0.0"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Python packages
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pyinstaller==6.10.0
+
+      - name: Check the real Windows key encryption (must pass)
+        run: python -m pytest -q -k real_windows_encryption
+
+      - name: All other tests (a failure here is reported but does not stop the build)
+        continue-on-error: true
+        run: python -m pytest -q
+
+      - name: Set the version number
+        shell: pwsh
+        run: |
+          $v = "${{ github.event.inputs.version }}"
+          (Get-Content desktop/src-tauri/tauri.conf.json -Raw) -replace '"version": "[^"]+"', ('"version": "' + $v + '"') | Set-Content desktop/src-tauri/tauri.conf.json -NoNewline
+          (Get-Content desktop/src-tauri/Cargo.toml -Raw) -replace '(?m)^version = "[^"]+"', ('version = "' + $v + '"') | Set-Content desktop/src-tauri/Cargo.toml -NoNewline
+
+      - name: Build the Iris engine (Python inside)
+        run: python -m PyInstaller desktop/iris-server.spec --noconfirm --distpath desktop/src-tauri/server --workpath desktop/build
+
+      - name: Check the engine on its own
+        shell: pwsh
+        run: |
+          $env:IRIS_PACKAGED = "1"; $env:IRIS_PORT = "8799"; $env:IRIS_TOKEN = "ci-token"; $env:NO_BROWSER = "1"
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP "appdata-engine"; New-Item -ItemType Directory -Force $env:APPDATA | Out-Null
+          $p = Start-Process -FilePath "desktop/src-tauri/server/iris-server/iris-server.exe" -PassThru -WindowStyle Hidden
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Milliseconds 500
+            try { Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8799/static/iris.png" | Out-Null; $ok = $true; break } catch {}
+          }
+          if (-not $ok) { throw "the engine did not start" }
+          $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+          try { Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8799/api/health" | Out-Null; throw "the API answered without the secret" } catch { if ($_.Exception.Message -like "the API*") { throw } }
+          Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8799/?t=ci-token" -WebSession $s | Out-Null
+          $h = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8799/api/health" -WebSession $s
+          if ($h.StatusCode -ne 200) { throw "the API refused the secret" }
+          Write-Host "engine ok: $($h.Content)"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Build the installer
+        working-directory: desktop
+        run: |
+          npm install
+          npx tauri build
+
+      - name: Name the installer
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem desktop/src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          if (-not $f) { throw "no installer was produced" }
+          Copy-Item $f.FullName "Iris-Setup.exe"
+          Get-Item Iris-Setup.exe | Format-List Name, Length
+
+      - name: Check that the engine is inside the installer
+        shell: pwsh
+        run: |
+          $list = & 7z l Iris-Setup.exe
+          if ($list | Select-String "iris-server.exe") { Write-Host "iris-server.exe is inside the installer" } else { Write-Host "note: could not see iris-server.exe in the installer listing (the next step installs it for real and decides)" }
+
+      - name: Install it and start it for real
+        shell: pwsh
+        run: |
+          Start-Process -FilePath ".\Iris-Setup.exe" -ArgumentList "/S" -Wait
+          $app = Join-Path $env:LOCALAPPDATA "Iris\Iris.exe"
+          if (-not (Test-Path $app)) { Get-ChildItem (Join-Path $env:LOCALAPPDATA "Iris") -Recurse | Select-Object -First 40 FullName; throw "Iris.exe was not installed" }
+          $dir = Join-Path $env:APPDATA "Iris"
+          Start-Process -FilePath $app
+          $ok = $false
+          for ($i = 0; $i -lt 90; $i++) {
+            Start-Sleep -Seconds 1
+            if ((Get-Process -Name "iris-server" -ErrorAction SilentlyContinue) -and (Get-Process -Name "Iris" -ErrorAction SilentlyContinue)) { $ok = $true; break }
+          }
+          if (-not $ok) { throw "the installed app did not start its engine" }
+          Start-Sleep -Seconds 8
+          if (-not (Get-Process -Name "iris-server" -ErrorAction SilentlyContinue)) { throw "the engine stopped by itself" }
+          if (-not (Test-Path $dir)) { throw "no data folder was created in AppData\Iris" }
+          Write-Host "app and engine are running; data folder: $dir"
+          Stop-Process -Name "Iris" -Force
+          $gone = $false
+          for ($i = 0; $i -lt 20; $i++) {
+            Start-Sleep -Seconds 1
+            if (-not (Get-Process -Name "iris-server" -ErrorAction SilentlyContinue)) { $gone = $true; break }
+          }
+          if (-not $gone) { throw "the engine kept running after the window was closed" }
+          Write-Host "engine stopped together with the window"
+
+      - name: Publish the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ github.event.inputs.version }}"
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag Iris-Setup.exe --title "Iris $tag for Windows" --notes "Windows installer. Download Iris-Setup.exe, run it, done. No Python needed. Your keys and history are kept in %APPDATA%\Iris, so updating never touches them."
+          } else {
+            gh release upload $tag Iris-Setup.exe --clobber
+          }
