@@ -175,3 +175,16 @@ def test_no_token_means_old_behaviour(monkeypatch):
     monkeypatch.setattr(appmod, "TOKEN", "")
     c = TestClient(appmod.app, base_url="http://127.0.0.1:8765")
     assert c.get("/api/health").status_code == 200
+
+
+@pytest.mark.skipif(not __import__("sys").platform.startswith("win"), reason="Windows encryption only exists on Windows")
+def test_real_windows_encryption_roundtrip():
+    """Runs on the Windows build machine: the real DPAPI, no stand-ins."""
+    from iris import secure
+    assert secure.available()
+    blob = secure.protect(b'{"kraken": {"values": {"api_key": "REAL-KEY-12345"}, "locked": true}}')
+    assert b"REAL-KEY" not in blob
+    assert secure.unprotect(blob).startswith(b'{"kraken"')
+    vault.save("kraken", {"api_key": "REAL-KEY-12345", "api_secret": "REAL-SECRET-12345"})
+    assert "REAL-KEY" not in VAULT_FILE.read_text()
+    assert vault.get("kraken")["api_secret"] == "REAL-SECRET-12345"

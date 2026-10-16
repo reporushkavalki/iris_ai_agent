@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Only the local start-up screen gets this. The Iris page itself (http://127.0.0.1) gets no access to the app's internals.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

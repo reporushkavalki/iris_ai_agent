@@ -99,7 +99,7 @@ const DONATE = (() => {
       done(await payTo(ADDR, lam, null));
     } catch (e) {
       const t = String((e && e.message) || e);
-      if (t === 'nowallet') msg('No Solana wallet found in this browser. Install Phantom, or use "Open in any Solana wallet app" below, or copy the address.', 'err');
+      if (t === 'nowallet') msg('No Solana wallet extension found here. In a normal browser, install Phantom; otherwise use "Open in any Solana wallet app" below, or copy the address.', 'err');
       else if (rejected(e)) msg('Cancelled. Nothing was sent.', '');
       else msg('Could not start the payment (' + t.slice(0, 120) + '). You can still use the wallet link or copy the address below.', 'err');
     } finally { busy = false; $('#donGo').disabled = false }

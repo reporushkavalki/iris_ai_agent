@@ -23,19 +23,28 @@ Everything is optional: add only what you use, and each section fills in as soon
 
 ## Quick start
 
+### Windows: the installer (no Python, nothing else to install)
+
+1. Download **`Iris-Setup.exe`** from the [latest release](https://github.com/reporushkavalki/iris_ai_agent/releases/latest) (or from the Iris website) and double-click it.
+2. Windows may show a blue **"Windows protected your PC"** box, because the installer is not signed with a paid certificate. Click **More info**, then **Run anyway**. The code is all open here on GitHub.
+3. Iris installs for your user only (no administrator rights) and opens in its own window. Start it later from the Start menu.
+4. Click **CONNECTIONS** and add what you want, or click **TRY DEMO DATA** to look around first. Press the small **(i)** next to any key, wallet or social to see exactly how to get it.
+
+**Updating:** download the new `Iris-Setup.exe` and run it. Your keys, wallets and history are not in the program folder but in `%APPDATA%\Iris`, so an update (or uninstalling and reinstalling) never touches them. To remove Iris completely, uninstall it in *Settings → Apps*, then delete the `%APPDATA%\Iris` folder if you also want the data gone.
+
+### macOS, Linux, or running from the source (needs Python)
+
 You need **Python 3.10 or newer** ([python.org/downloads](https://www.python.org/downloads/), on Windows tick *"Add python.exe to PATH"*).
 
 1. Download this project (green **Code** button, then **Download ZIP**) and unzip it.
 2. Start it:
-   - **Windows:** double-click **`LAUNCH IRIS -- (Start here).bat`**
-   - The first time you start it, Iris also creates a shortcut called **Iris** (with the Iris icon) on your Desktop and says so in the window. From then on, just double-click that shortcut. If it doesn't appear, open the gear menu in Iris and press **ADD DESKTOP ICON** (the window or the screen then shows the reason if it still fails). You can delete the shortcut any time.
+   - **Windows:** double-click **`LAUNCH IRIS -- (Start here).bat`**. The first time, Iris also creates a shortcut called **Iris** on your Desktop. If it doesn't appear, open the gear menu in Iris and press **ADD DESKTOP ICON**.
    - **macOS / Linux:** open a terminal in the folder and run `bash start.sh`. The first start also puts a **Iris** icon on your Desktop (macOS: double-click `Iris.command`; Linux: `Iris.desktop`, and on some desktops right-click it once and choose *Allow Launching*). macOS may ask you to allow it the first time (right-click → Open). On Linux you need `python3-venv` (`sudo apt install python3-venv` on Debian/Ubuntu).
 3. Your browser opens the dashboard at `http://127.0.0.1:8765`. The first start installs a few packages (about a minute).
-4. Click **CONNECTIONS** and add what you want, or click **TRY DEMO DATA** to look around first. Press the small **(i)** next to any key, wallet or social to see exactly how to get it.
+4. Click **CONNECTIONS** and add what you want, or click **TRY DEMO DATA** to look around first.
 5. This guide is also inside the app: press **README** in the top bar.
 
-To stop it, close the window (or press `Ctrl+C`). Your settings and history stay in the `data` folder. To move to a new copy of Iris, copy that folder over (or run `python app.py --import-data "<old data folder>"`); an existing file is never overwritten.
-After updating to a newer version, delete the `.venv` folder once so the packages refresh.
+To stop it, close the window (or press `Ctrl+C`). Your settings and history stay in the `data` folder next to the program. **To update,** download the new zip, copy your old `data` folder into the new folder (or run `python app.py --import-data "<old data folder>"`; an existing file is never overwritten), and delete the `.venv` folder once so the packages refresh.
 
 ![Connections](docs/connections.png)
 
@@ -85,8 +94,8 @@ PnL is *the change in your balance* over the period (per account, summed). Iris 
 
 ## Safety: what is stored, and where
 
-- Everything stays on **your computer**. The app listens on `127.0.0.1` only and rejects requests from other websites. **Never expose it to the internet.**
-- Keys are saved in **`data/vault.json`** on your computer, nowhere else. **On Windows the file is encrypted with your Windows account** (it only opens for you, on this PC; a copy on another PC or account is unreadable and Iris keeps it aside instead of overwriting it). On macOS and Linux it is a plain file that only your user can read. **Don't zip, share, sync or commit the `data` folder.** It is already in `.gitignore`.
+- Everything stays on **your computer**. The app listens on `127.0.0.1` only and rejects requests from other websites. In the Windows app the engine also needs a random secret that only the Iris window knows, so other programs and other Windows users on the PC can't read your data through it. **Never expose it to the internet.**
+- Keys are saved in **`data/vault.json`** (in the Windows app: `%APPDATA%\Iris\vault.json`) on your computer, nowhere else. **On Windows the file is encrypted with your Windows account** (it only opens for you, on this PC; a copy on another PC or account is unreadable and Iris keeps it aside instead of overwriting it). On macOS and Linux it is a plain file that only your user can read. **Don't zip, share, sync or commit the `data` folder.** It is already in `.gitignore`.
 - Once saved, a key is **locked**: the screen only shows a masked hint (`••••a1b2`), and it can't be replaced or removed until you click *Unlock*. This prevents accidents; the encryption above is what protects the file itself.
 - Keys are sent only to the service they belong to (your exchange, Anthropic, Google, ...). The Iris page never gets a secret back from the server.
 - Use **read-only** keys and, where the exchange allows, **restrict them to your IP address**.
@@ -110,7 +119,22 @@ If you ever shared a key by accident, delete it on the exchange's website and cr
 | No **Iris** icon on the Desktop | Close the Iris window completely and start it again with the launcher (the icon is made at start-up, so an already-running Iris won't make it). Or open the gear menu in Iris and press **ADD DESKTOP ICON**. If Windows blocks the normal shortcut, Iris falls back to a plain link file. Every attempt and its result is written to `data/shortcut.log`. |
 | No voice at the very start | The welcome plays by itself once each time you start Iris. Browsers refuse to talk before your first click, so Iris then speaks through your computer's own voice instead (Windows, macOS, or Linux with `espeak-ng` or `speech-dispatcher` installed, e.g. `sudo apt install espeak-ng`); problems are written to `data/say.log` and shown on the page. If neither works, click anywhere on the page, or press **HEAR THE INTRO**. |
 | Port 8765 busy | Iris picks the next free port and prints it in the window. |
+| Windows app: "Iris stopped while starting" or it never opens | Close it, wait a few seconds and open it again. Security software sometimes holds the first start for a moment. If it keeps failing, reinstall with the newest `Iris-Setup.exe`; your data in `%APPDATA%\Iris` stays. |
+| Windows app: "Your saved keys could not be opened" | The keys were saved by another Windows account or computer (they are encrypted to the account). Enter them again; the old file stays next to it as `vault.unreadable-….json` in `%APPDATA%\Iris`. |
+| Windows app: no Phantom pop-up on the donate form | The app window has no browser extensions. Use the wallet-app link ("Pay from a wallet app") if you have Phantom Desktop installed, or copy the address and pay from your wallet. |
 | Social card says rate-limited | X's free tier allows only a few reads. Others refresh every 5 minutes. |
+
+---
+
+## Building the Windows installer
+
+The installer is built on GitHub, not on your computer: open the repository's **Actions** tab, choose **Windows app**, press **Run workflow**, type a version (for example `1.0.0`) and run it. After a few minutes the release appears under **Releases** with `Iris-Setup.exe`. The workflow runs the tests (including the real Windows key encryption), builds the engine with PyInstaller, wraps it in a Tauri window (`desktop/`), then installs and starts the result on a clean Windows machine before publishing.
+
+```
+desktop/iris-server.spec      PyInstaller recipe: Python + Iris as one hidden engine program
+desktop/src-tauri/            the Tauri window (Rust): starts the engine, shows it, stops it
+.github/workflows/windows-app.yml   the build and release
+```
 
 ---
 

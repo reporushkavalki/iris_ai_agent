@@ -14,7 +14,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from iris.config import DATA_DIR, ROOT
+from iris.config import DATA_DIR, PACKAGED, ROOT
 
 MARK = DATA_DIR / ".shortcut"
 LOG = DATA_DIR / "shortcut.log"
@@ -27,6 +27,8 @@ def _win() -> bool:
 
 
 def supported() -> bool:
+    if PACKAGED:                      # the installed app gets its Start-menu entry from the installer
+        return False
     return _win() or _unix() is not None
 
 

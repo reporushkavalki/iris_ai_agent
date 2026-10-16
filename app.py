@@ -423,9 +423,26 @@ def _cli() -> bool:
     return True
 
 
+def _quit_when_window_closes() -> None:
+    """Desktop app: the window keeps our stdin open. When it closes (or crashes) stdin ends and Iris stops with it."""
+    def watch():
+        try:
+            while sys.stdin.buffer.read(4096):
+                pass
+        except Exception:
+            pass
+        os._exit(0)
+    threading.Thread(target=watch, daemon=True).start()
+
+
 if __name__ == "__main__":
+    for _s in ("stdout", "stderr"):
+        if getattr(sys, _s) is None:         # a windowed build has no console; printing must not crash
+            setattr(sys, _s, open(os.devnull, "w"))
     if _cli():
         sys.exit(0)
+    if os.getenv("IRIS_WATCH_STDIN"):
+        _quit_when_window_closes()
     moved = import_legacy_if_new()
     if moved and moved["copied"]:
         print(f"Brought your earlier data into {DATA_DIR}")

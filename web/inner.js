@@ -45,7 +45,7 @@ const INNER = (() => {
       try { await DONATE.payTo(r.recipient, BigInt(r.lamports), r.reference) }
       catch (e) {
         const t = String((e && e.message) || e);
-        if (t === 'nowallet') { msg('No Solana wallet found in this browser. Install Phantom, or use "Pay from a wallet app" below. We will keep watching for your payment.', 'err'); waitForPayment(); return }
+        if (t === 'nowallet') { msg('No Solana wallet extension found here. In a normal browser, install Phantom; otherwise use "Pay from a wallet app" below. We will keep watching for your payment.', 'err'); waitForPayment(); return }
         if (DONATE.rejected(e)) { msg('Cancelled. Nothing was sent.', ''); return }
         throw e;
       }

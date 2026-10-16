@@ -1,0 +1,22 @@
+[package]
+name = "iris-desktop"
+version = "1.0.0"
+description = "Iris - your crypto control room (desktop window)"
+edition = "2021"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+getrandom = "0.2"
+open = "5"
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
