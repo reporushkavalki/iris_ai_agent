@@ -35,6 +35,25 @@ const LINK_GUARD: &str = r#"
 })();
 "#;
 
+/// A small log in the Iris data folder (%APPDATA%\Iris\desktop.log) so a start-up problem can be seen afterwards.
+fn log(msg: &str) {
+    use std::io::Write;
+    let base = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share")));
+    if let Some(dir) = base.map(|b| b.join(if cfg!(windows) { "Iris" } else { "iris" })) {
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("desktop.log");
+        if std::fs::metadata(&path).map(|m| m.len() > 200_000).unwrap_or(false) {
+            let _ = std::fs::remove_file(&path);
+        }
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+            let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+            let _ = writeln!(f, "[{secs}] {msg}");
+        }
+    }
+}
+
 fn free_port() -> u16 {
     TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
         .and_then(|l| l.local_addr())
@@ -100,6 +119,7 @@ fn start_server(exe: &PathBuf, port: u16, token: &str) -> std::io::Result<Child>
 }
 
 fn fail(app: &AppHandle, msg: &str) {
+    log(&format!("FAILED: {msg}"));
     std::thread::sleep(Duration::from_millis(1200)); // let the start-up screen finish loading
     if let Some(w) = app.get_webview_window("main") {
         let text = serde_json::to_string(msg).unwrap_or_else(|_| "\"Iris could not start.\"".into());
@@ -109,10 +129,12 @@ fn fail(app: &AppHandle, msg: &str) {
 
 fn boot(app: AppHandle) {
     let Some(exe) = find_server(&app) else {
+        log(&format!("engine not found; resource dir = {:?}", app.path().resource_dir()));
         return fail(&app, "Iris could not find its engine (iris-server). Please reinstall Iris.");
     };
     let port = free_port();
     let token = make_token();
+    log(&format!("starting engine {} on port {}", exe.display(), port));
     match start_server(&exe, port, &token) {
         Ok(child) => *app.state::<Server>().0.lock().unwrap() = Some(child),
         Err(e) => return fail(&app, &format!("Iris could not start its engine: {e}")),
@@ -140,6 +162,7 @@ fn boot(app: AppHandle) {
         std::thread::sleep(Duration::from_millis(200));
     }
 
+    log(&format!("engine answered after {:?}", started.elapsed()));
     let url = format!("http://127.0.0.1:{port}/?t={token}");
     if let (Some(w), Ok(u)) = (app.get_webview_window("main"), Url::parse(&url)) {
         let _ = w.navigate(u);
@@ -189,7 +212,11 @@ fn main() {
         }))
         .manage(Server(Mutex::new(None)))
         .setup(|app| {
-            build_window(app.handle())?;
+            log("Iris window starting");
+            if let Err(e) = build_window(app.handle()) {
+                log(&format!("could not create the window: {e}"));
+                return Err(e.into());
+            }
             let handle = app.handle().clone();
             std::thread::spawn(move || boot(handle));
             Ok(())
