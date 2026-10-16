@@ -29,7 +29,9 @@ def test_scrub_removes_secrets_and_url_keys():
     assert "TOPSECRETTOKEN123" not in out and "abc123" not in out and "ZZZ" not in out
 
 
-def test_vault_file_is_json_in_data_dir():
+def test_vault_file_is_json_in_data_dir(monkeypatch):
+    from iris import secure
+    monkeypatch.setattr(secure, "available", lambda: False)      # this test is about the plain-file form (Windows would encrypt)
     vault.save("kraken", {"api_key": "k" * 12, "api_secret": "s" * 12})
     assert json.loads(VAULT_FILE.read_text())["kraken"]["locked"] is True
 
@@ -125,7 +127,9 @@ def test_broken_os_crypto_falls_back_to_plain_but_works(monkeypatch):
     assert vault.get("kraken")["api_key"] == "KEY-12345678"
 
 
-def test_plain_vault_still_works_without_os_crypto():
+def test_plain_vault_still_works_without_os_crypto(monkeypatch):
+    from iris import secure
+    monkeypatch.setattr(secure, "available", lambda: False)
     vault.save("kraken", {"api_key": "KEY-12345678"})
     assert json.loads(VAULT_FILE.read_text())["kraken"]["values"]["api_key"] == "KEY-12345678"
 

@@ -239,6 +239,7 @@ def test_desktop_shortcut_creation_logic(monkeypatch, tmp_path):
     from iris import shortcut
     monkeypatch.setattr(shortcut, "desktop_dir", lambda: tmp_path / "no-desktop")
     monkeypatch.setattr(shortcut.sys, "platform", "linux")
+    monkeypatch.setattr(shortcut, "_win", lambda: False)             # pretend to be Linux even when the tests run on Windows
     assert shortcut.create()["ok"] is False and shortcut.ensure() is None            # no Desktop folder: politely does nothing
     seen = {}
     monkeypatch.setattr(shortcut, "_win", lambda: True)
@@ -370,6 +371,7 @@ def test_linux_voice_programs(monkeypatch):
     assert not say.supported() and not say.speak("hello")          # no voice installed: quietly says no
 
 
+@pytest.mark.skipif(__import__("sys").platform.startswith("win"), reason="checks Unix file permissions, which Windows does not have")
 @pytest.mark.parametrize("plat,fname,needle", [("darwin", "Iris.command", "exec bash start.sh"), ("linux", "Iris.desktop", "Terminal=true")])
 def test_unix_desktop_icon(monkeypatch, tmp_path, plat, fname, needle):
     from iris import shortcut
