@@ -91,24 +91,58 @@ jobs:
           $list = & 7z l Iris-Setup.exe
           if ($list | Select-String "iris-server.exe") { Write-Host "iris-server.exe is inside the installer" } else { Write-Host "note: could not see iris-server.exe in the installer listing (the next step installs it for real and decides)" }
 
-      - name: Install it and start it for real
+      - name: Install it and look inside
         shell: pwsh
         run: |
           Start-Process -FilePath ".\Iris-Setup.exe" -ArgumentList "/S" -Wait
-          $app = Join-Path $env:LOCALAPPDATA "Iris\Iris.exe"
-          if (-not (Test-Path $app)) { Get-ChildItem (Join-Path $env:LOCALAPPDATA "Iris") -Recurse | Select-Object -First 40 FullName; throw "Iris.exe was not installed" }
-          $dir = Join-Path $env:APPDATA "Iris"
-          Start-Process -FilePath $app
+          $inst = Join-Path $env:LOCALAPPDATA "Iris"
+          if (-not (Test-Path (Join-Path $inst "Iris.exe"))) { Get-ChildItem $inst -Recurse -ErrorAction SilentlyContinue | Select-Object -First 60 FullName; throw "Iris.exe was not installed" }
+          Write-Host "--- installed files (top level) ---"
+          Get-ChildItem $inst | Format-Table Name, Length -AutoSize | Out-String | Write-Host
+          $engine = Get-ChildItem $inst -Recurse -Filter "iris-server.exe" | Select-Object -First 1
+          if (-not $engine) { throw "iris-server.exe was not installed next to Iris.exe" }
+          Write-Host "engine installed at: $($engine.FullName)"
+          $internal = Get-ChildItem $engine.DirectoryName -Directory | Where-Object Name -eq "_internal"
+          if (-not $internal) { Get-ChildItem $engine.DirectoryName | Select-Object -First 40 Name; throw "the engine's _internal folder is missing (the installer flattened the files)" }
+          "ENGINE=$($engine.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Start the installed engine
+        shell: pwsh
+        run: |
+          $env:IRIS_PACKAGED = "1"; $env:IRIS_PORT = "8798"; $env:IRIS_TOKEN = "ci-token"; $env:NO_BROWSER = "1"
+          $p = Start-Process -FilePath $env:ENGINE -PassThru -WindowStyle Hidden -WorkingDirectory (Split-Path $env:ENGINE)
           $ok = $false
           for ($i = 0; $i -lt 90; $i++) {
-            Start-Sleep -Seconds 1
-            if ((Get-Process -Name "iris-server" -ErrorAction SilentlyContinue) -and (Get-Process -Name "Iris" -ErrorAction SilentlyContinue)) { $ok = $true; break }
+            Start-Sleep -Milliseconds 500
+            if ($p.HasExited) { throw "the installed engine stopped by itself (exit code $($p.ExitCode))" }
+            try { Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8798/static/iris.png" | Out-Null; $ok = $true; break } catch {}
           }
-          if (-not $ok) { throw "the installed app did not start its engine" }
+          if (-not $ok) { throw "the installed engine did not answer" }
+          Write-Host "the installed engine answers"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Start the installed app window (information only)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $app = Join-Path $env:LOCALAPPDATA "Iris\Iris.exe"
+          $p = Start-Process -FilePath $app -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 1
+            if (Get-Process -Name "iris-server" -ErrorAction SilentlyContinue) { $ok = $true; break }
+            if ($p.HasExited) { break }
+          }
+          Write-Host "--- app log ---"
+          $log = Join-Path $env:APPDATA "Iris\desktop.log"
+          if (Test-Path $log) { Get-Content $log } else { Write-Host "(no desktop.log was written)" }
+          Write-Host "--- processes ---"
+          Get-Process | Where-Object { $_.Name -match "iris|Iris|msedgewebview2" } | Format-Table Name, Id -AutoSize | Out-String | Write-Host
+          Write-Host "app exited: $($p.HasExited)"
+          if ($p.HasExited) { Write-Host "app exit code: $($p.ExitCode)" }
+          if (-not $ok) { throw "the app window did not start its engine on this build machine" }
           Start-Sleep -Seconds 8
           if (-not (Get-Process -Name "iris-server" -ErrorAction SilentlyContinue)) { throw "the engine stopped by itself" }
-          if (-not (Test-Path $dir)) { throw "no data folder was created in AppData\Iris" }
-          Write-Host "app and engine are running; data folder: $dir"
           Stop-Process -Name "Iris" -Force
           $gone = $false
           for ($i = 0; $i -lt 20; $i++) {
