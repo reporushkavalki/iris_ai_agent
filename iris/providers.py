@@ -4,6 +4,7 @@ To add a field or a whole service, add an entry here (and a connector if it is n
 Secret fields are masked in the browser and never sent back once saved.
 """
 from iris import vault
+from iris.config import UPGRADE_URL
 from iris.help_text import HELP
 
 
@@ -16,13 +17,17 @@ _YESNO = ["yes", "no"]
 _RO = "Create the key as READ-ONLY (no trading, no withdrawals) and, if the exchange allows it, restrict it to your IP address."
 
 PROVIDERS = [
+    # ---- Iris Pro ----
+    {"id": "pro", "group": "pro", "title": "Iris Pro license", "link": UPGRADE_URL,
+     "blurb": "Paste the license key from your purchase email. Pro: every connection unlocked, no limit on accounts, the advanced Iris AI included (no Claude key needed), early access and the Inner Circle.",
+     "fields": [field("license_key", "License key", placeholder="IRIS-XXXX-XXXX-XXXX-XXXX")]},
     # ---- AI ----
-    {"id": "anthropic", "group": "ai", "title": "Claude AI assistant", "link": "https://console.anthropic.com/settings/keys",
-     "blurb": "Powers the chat. Your key stays on this computer and is only sent to Anthropic.",
+    {"id": "anthropic", "group": "ai", "title": "Claude AI (your own key)", "link": "https://console.anthropic.com/settings/keys",
+     "blurb": "WITH IRIS PRO YOU NEED NO KEY: the advanced Iris AI is included. This card is for the free plan (your own Anthropic key, chat with Claude Haiku 5.5) or for Pro users who prefer their own key. Your key stays on this computer and is only sent to Anthropic.",
      "fields": [field("api_key", "Anthropic API key", placeholder="sk-ant-..."),
                 field("model", "Model", secret=False, required=False, default="claude-sonnet-5-5",
                       options=["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"],
-                      help="Haiku is cheapest, Opus is the most capable.")]},
+                      help="Free plan: always Haiku 5.5. With Iris Pro you choose: Sonnet is the all-rounder, Opus the most capable.")]},
     # ---- exchanges ----
     {"id": "binance", "group": "exchange", "title": "Binance", "link": "https://www.binance.com/en/my/settings/api-management",
      "blurb": "Spot balances and USD-M futures positions. " + _RO,
@@ -47,6 +52,28 @@ PROVIDERS = [
     {"id": "kraken", "group": "exchange", "title": "Kraken", "link": "https://www.kraken.com/u/security/api",
      "blurb": "Spot balances incl. staked assets. Permission needed: 'Query funds' only.",
      "fields": [field("api_key", "API key"), field("api_secret", "Private key")]},
+    {"id": "bitget", "group": "exchange", "title": "Bitget (beta)", "link": "https://www.bitget.com/account/newapi",
+     "blurb": "Spot balances and USDT futures. " + _RO,
+     "fields": [field("api_key", "API key"), field("api_secret", "Secret key"), field("passphrase", "Passphrase"),
+                field("futures", "Include futures", secret=False, required=False, default="yes", options=_YESNO)]},
+    {"id": "kucoin", "group": "exchange", "title": "KuCoin (beta)", "link": "https://www.kucoin.com/account/api",
+     "blurb": "Spot, trading and funding balances. Choose 'General' permission only (no trading, no transfer, no withdrawal).",
+     "fields": [field("api_key", "API key"), field("api_secret", "API secret"), field("passphrase", "API passphrase")]},
+    {"id": "gate", "group": "exchange", "title": "Gate.io (beta)", "link": "https://www.gate.io/myaccount/apikeys",
+     "blurb": "Spot balances and USDT futures margin. Give the key read-only permissions only.",
+     "fields": [field("api_key", "API key"), field("api_secret", "API secret"),
+                field("futures", "Include futures", secret=False, required=False, default="yes", options=_YESNO)]},
+    {"id": "alpaca", "group": "exchange", "title": "Alpaca (US stocks broker)", "link": "https://app.alpaca.markets/paper/dashboard/overview",
+     "blurb": "Your US stock and crypto positions and cash. An Alpaca API key can also trade, so keep it private and use the paper account to try this out first. Iris only reads.",
+     "fields": [field("api_key", "API key ID"), field("api_secret", "Secret key"),
+                field("env", "Account", secret=False, required=False, default="live", options=["live", "paper"], help="'paper' is Alpaca's practice account.")]},
+    {"id": "trading212", "group": "exchange", "title": "Trading 212 (stocks broker, beta)", "link": "https://www.trading212.com/",
+     "blurb": "Your Trading 212 invested value and cash. Give the key read permissions only. Iris only reads.",
+     "fields": [field("api_key", "API key"), field("api_secret", "API secret"),
+                field("env", "Account", secret=False, required=False, default="live", options=["live", "demo"], help="'demo' is the practice account.")]},
+    {"id": "coinbase", "group": "exchange", "title": "Coinbase (beta)", "link": "https://portal.cdp.coinbase.com/access/api",
+     "blurb": "All your Coinbase balances. Create a CDP API key with the View permission only (no trade, no transfer), type ECDSA.",
+     "fields": [field("api_key", "API key name", placeholder="organizations/.../apiKeys/..."), field("api_secret", "Private key", placeholder="-----BEGIN EC PRIVATE KEY----- ...")]},
     # ---- socials (credentials; accounts are added in the SOCIALS list) ----
     {"id": "youtube", "group": "social", "title": "YouTube", "link": "https://console.cloud.google.com/apis/credentials",
      "blurb": "Free. Enable 'YouTube Data API v3' in Google Cloud and create an API key. Then add channels below.",
@@ -63,7 +90,10 @@ PROVIDERS = [
     {"id": "telegram", "group": "social", "title": "Telegram", "link": "https://t.me/BotFather",
      "blurb": "Create a bot with @BotFather, add it to your channel or group, then add the @channel name below.",
      "fields": [field("bot_token", "Bot token")]},
-    # ---- network ----
+    # ---- network / data ----
+    {"id": "finnhub", "group": "network", "title": "Finnhub (optional, stock prices)", "link": "https://finnhub.io/register",
+     "blurb": "Free key for steadier US stock quotes. Without it Iris uses Yahoo Finance's public prices, which can change or stop without notice.",
+     "fields": [field("api_key", "Finnhub API key")]},
     {"id": "solana_rpc", "group": "network", "title": "Solana RPC (optional)", "link": "https://www.helius.dev/",
      "blurb": "The free public RPC is slow and rate-limited. Paste a free personal RPC URL (Helius, QuickNode, ...) for reliable Solana balances.",
      "fields": [field("url", "RPC URL", placeholder="https://mainnet.helius-rpc.com/?api-key=...")]},

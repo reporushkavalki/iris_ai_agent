@@ -5,7 +5,7 @@ Connect your exchanges, wallets and social accounts, see everything in one place
 
 ![Dashboard](docs/dashboard.png)
 
-- **One total balance** across Binance, Bybit, OKX, MEXC, Kraken and any wallet you add, with 24h / 7d / 30d PnL
+- **One total balance** across your exchanges (Kraken free; Binance, Bybit and more with Pro), wallets and stocks & commodities, with 24h / 7d / 30d PnL
 - **Charts:** balance over time, allocation donut, daily-change calendar, live market sparklines (the MARKETS panel follows the coins you hold; with no holdings yet it shows the 8 biggest coins by market cap)
 - **Open futures positions** from all exchanges in one list (side, size, entry, leverage, liquidation, PnL)
 - **Wallets by address only:** Solana, Ethereum + Base / Arbitrum / Optimism / Polygon / BNB Chain, Bitcoin, Hyperliquid
@@ -38,7 +38,7 @@ You need **Python 3.10 or newer** ([python.org/downloads](https://www.python.org
 
 1. Download this project (green **Code** button, then **Download ZIP**) and unzip it.
 2. Start it:
-   - **Windows:** double-click **`LAUNCH IRIS -- (Start here).bat`**. The first time, Iris also creates a shortcut called **Iris** on your Desktop. If it doesn't appear, open the gear menu in Iris and press **ADD DESKTOP ICON**.
+   - **Windows:** double-click **`LAUNCH IRIS.bat`**. The first time, Iris also creates a shortcut called **Iris** on your Desktop. If it doesn't appear, open the gear menu in Iris and press **ADD DESKTOP ICON**.
    - **macOS / Linux:** open a terminal in the folder and run `bash start.sh`. The first start also puts a **Iris** icon on your Desktop (macOS: double-click `Iris.command`; Linux: `Iris.desktop`, and on some desktops right-click it once and choose *Allow Launching*). macOS may ask you to allow it the first time (right-click → Open). On Linux you need `python3-venv` (`sudo apt install python3-venv` on Debian/Ubuntu).
 3. Your browser opens the dashboard at `http://127.0.0.1:8765`. The first start installs a few packages (about a minute).
 4. Click **CONNECTIONS** and add what you want, or click **TRY DEMO DATA** to look around first.
@@ -50,25 +50,47 @@ To stop it, close the window (or press `Ctrl+C`). Your settings and history stay
 
 ---
 
+## Free and Pro
+
+Iris is free to download. The free plan is small on purpose, four things:
+
+1. **Claude AI chat** with your own Anthropic key (the free chat uses Claude Haiku 5.5)
+2. **Kraken** (the one free exchange: it serves the US, the EU and the UK)
+3. **Wallets** (public addresses)
+4. **Stocks & commodities** typed in by hand (Yahoo Finance prices, often delayed about 15 minutes; an optional free Finnhub key gives steadier US prices with Pro)
+
+Together the free plan connects up to **5 accounts**. Everything else is listed in Connections with a 🔒 and the PRO tag: Binance, Bybit, OKX, MEXC, Bitget, KuCoin, Gate.io, Alpaca (US stocks broker), Trading 212, Coinbase (all beta), social accounts (YouTube, Instagram, X, Telegram, Discord) and the advanced keys.
+
+**Iris Pro** unlocks every connection, removes the account limit, includes the **advanced Iris AI** (Claude Sonnet 5.5; the chat works without any Claude key, within a monthly allowance), DeFi data (yields and protocol sizes) and gives early access plus the Inner Circle. Price: **$9.99 a month or $89.99 a year**. Paste the license key under **Connections > Iris Pro**. Connections you saved before stay working. Your own Claude key, if you add one, is always used first.
+
+---
+
 ## What to connect
 
 Open **CONNECTIONS** (top right). Each card has an **(i)** button that explains step by step how to get the key, a *Get a key* link, takes the key, **locks** it, and has a **TEST** button.
 
 | Connect | What you paste | Permission to give the key |
 |---|---|---|
-| **Claude AI** (chat) | Anthropic API key | n/a. Usage is billed by Anthropic to your account; short questions cost a fraction of a cent. |
-| **Binance** | API key + secret | Enable Reading only. Spot + USD-M futures are read. Funding / Earn wallets are not included. |
-| **Bybit** | API key + secret | Read-only. Unified account + perpetual positions. |
-| **OKX** | API key + secret + passphrase | Read only. Trading + funding account and positions. |
-| **MEXC** | API key + secret | "View account details" + "View order details". Spot + futures. |
+| **Claude AI** (chat, free) | Anthropic API key | n/a. Usage is billed by Anthropic to your account; short questions cost a fraction of a cent. |
+| **Binance** *(Pro)* | API key + secret | Enable Reading only. Spot + USD-M futures are read. Funding / Earn wallets are not included. |
+| **Bybit** *(Pro)* | API key + secret | Read-only. Unified account + perpetual positions. |
+| **OKX** *(Pro)* | API key + secret + passphrase | Read only. Trading + funding account and positions. |
+| **MEXC** *(Pro)* | API key + secret | "View account details" + "View order details". Spot + futures. |
 | **Kraken** | API key + private key | "Query funds" only. Spot incl. staked assets. |
+| **Bitget** *(Pro, beta)* | API key + secret + passphrase | Read-only. Spot + USDT futures. |
+| **KuCoin** *(Pro, beta)* | API key + secret + passphrase | "General" only. Spot, trading and funding balances. |
+| **Gate.io** *(Pro, beta)* | API key + secret | Read-only. Spot + USDT futures margin. |
+| **Alpaca** *(Pro, beta)* | Key ID + secret | Alpaca keys cannot be read-only, so keep it private. Iris only reads. US stocks, ETFs, crypto, cash. Paper account supported. |
+| **Trading 212** *(Pro, beta)* | API key + secret | Read permissions only. Shows invested value and cash (single positions are not listed yet). Practice account supported. |
+| **Coinbase** *(Pro, beta)* | CDP key name + private key (ECDSA) | "View" only. All wallet balances. Needs the `cryptography` package (installed automatically). |
+| **Stocks & commodities** | Type `SYMBOL AMOUNT` per line | Nothing. Needs no key. GOLD, SILVER, OIL ... and Yahoo symbols (NESTE.HE, VOD.L). |
 | **Wallets** | A **public** address | Nothing. Solana, EVM (pick the networks), Bitcoin, Hyperliquid (beta). |
-| **YouTube** | Free YouTube Data API v3 key + `@handle` | n/a |
-| **Instagram** | Meta access token + numeric user id | Business or Creator accounts only (Meta's rule). |
-| **X (Twitter)** | Bearer token + username | X's free tier allows very few reads, so refreshes may be rate-limited. |
-| **Telegram** | Bot token (from @BotFather) + `@channel` | The bot must be in the channel. Shows the member count. |
-| **Discord** | Invite code only | No key needed. Shows members and how many are online. |
-| **Solana RPC** *(optional)* | A free RPC URL (Helius, QuickNode ...) | The public RPC is rate-limited; your own is much more reliable. |
+| **YouTube** *(Pro)* | Free YouTube Data API v3 key + `@handle` | n/a |
+| **Instagram** *(Pro)* | Meta access token + numeric user id | Business or Creator accounts only (Meta's rule). |
+| **X (Twitter)** *(Pro)* | Bearer token + username | X's free tier allows very few reads, so refreshes may be rate-limited. |
+| **Telegram** *(Pro)* | Bot token (from @BotFather) + `@channel` | The bot must be in the channel. Shows the member count. |
+| **Discord** *(Pro)* | Invite code only | No key needed. Shows members and how many are online. |
+| **Solana RPC** *(optional, Pro)* | A free RPC URL (Helius, QuickNode ...) | The public RPC is rate-limited; your own is much more reliable. |
 
 **TikTok** has no public API for this, so it isn't included.
 
@@ -185,4 +207,4 @@ The **★ JOIN INNER CIRCLE** button in the header (next to README and Connectio
 
 Iris is a viewing tool, not financial advice. Numbers come from third-party APIs and best-effort market prices and may be delayed, incomplete or wrong; check important figures on the exchange itself. Use at your own risk. MIT licensed (see `LICENSE`).
 
-**Sponsored by** [chartinginteractive.io](https://promo.chartinginteractive.io) // [solanasniper.ai](https://solanasniper.ai) // [wicksync.io](https://wicksync.io)
+**Sponsored by** [chartinginteractive.io](https://promo.chartinginteractive.io) // [solanasniper.ai](https://solanasniper.ai)

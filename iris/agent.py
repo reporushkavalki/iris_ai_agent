@@ -3,17 +3,17 @@ from datetime import datetime
 
 import anthropic
 
-from iris import providers, vault
+from iris import pro, providers, vault
 from iris.tools import SCHEMAS, run_tool
 
 MAX_STEPS = 8
 MAX_HISTORY = 30
 
-SYSTEM = """You are Iris, a calm, quick, friendly assistant inside a personal crypto dashboard.
-You can see the user's connected exchanges, wallets (public addresses) and social accounts only through your tools, and everything is READ-ONLY:
+SYSTEM = """You are Iris, a calm, quick, friendly assistant inside a personal crypto and investing dashboard.
+You can see the user's connected exchanges, wallets (public addresses), stock and commodity accounts and social accounts only through your tools, and everything is READ-ONLY:
 you cannot trade, transfer or withdraw, and you must never ask for private keys, seed phrases or API secrets.
 Always call a tool for live numbers; never guess balances, prices or follower counts. For total balance, PnL or allocation call get_portfolio;
-for where an asset is held call get_holdings; for futures call get_positions; for market prices call get_prices; for audience growth call get_socials; for market sentiment, news, the Fed, CPI, jobs numbers or Fear & Greed call get_market_pulse and never invent news (if it has none, say so).
+for where an asset is held call get_holdings; for futures call get_positions; for crypto prices call get_prices; for stocks, ETFs and commodities call get_quote; for DeFi yields, protocol sizes and chains call get_defi (it cannot see the user's own DeFi positions, say so); for audience growth call get_socials; for market sentiment, news, the Fed, CPI, jobs numbers or Fear & Greed call get_market_pulse and never invent news (if it has none, say so).
 If a tool says nothing is connected, tell the user to open Connections (the gear button) or try the demo data.
 If data comes from demo mode (demo_data true), say it is demo data.
 PnL is the change in balance: money deposited or withdrawn counts as gain or loss; mention this once if it matters.
@@ -30,12 +30,18 @@ class Iris:
         self._key = None
 
     def _client_for_key(self):
+        """Your own Claude key first; otherwise the hosted AI of Iris Pro. Returns (client, model, hosted)."""
         key = vault.get("anthropic").get("api_key")
-        if not key:
-            raise PermissionError("no_key")
-        if key != self._key:
-            self._client, self._key = anthropic.Anthropic(api_key=key), key
-        return self._client
+        if key:
+            if key != self._key:
+                self._client, self._key = anthropic.Anthropic(api_key=key), key
+            return self._client, pro.own_key_model(), False
+        if pro.ai_ready():
+            tag = "pro:" + pro.license_key()
+            if tag != self._key:
+                self._client, self._key = pro.hosted_client(), tag
+            return self._client, pro.HOSTED_MODEL, True
+        raise PermissionError("no_key")
 
     def _trim(self):
         while len(self.history) > MAX_HISTORY:
@@ -44,13 +50,20 @@ class Iris:
             self.history.pop(0)      # restart on a plain user message so tool_use / tool_result stay paired
 
     def ask(self, text: str) -> str:
-        client = self._client_for_key()
-        model = providers.values("anthropic").get("model") or "claude-sonnet-5-5"
+        client, model, hosted = self._client_for_key()
         self.history.append({"role": "user", "content": text})
         self._trim()
+        mark = len(self.history) - 1          # where this question starts, so a refused question can be dropped completely
         system = SYSTEM.format(now=datetime.now().astimezone().strftime("%A %Y-%m-%d %H:%M %Z"))
         for _ in range(MAX_STEPS):
-            resp = client.messages.create(model=model, max_tokens=1024, system=system, tools=SCHEMAS, messages=self.history)
+            try:
+                resp = client.messages.create(model=model, max_tokens=1024, system=system, tools=SCHEMAS, messages=self.history)
+            except Exception as e:  # noqa: BLE001
+                said = pro.explain_error(e) if hosted else None
+                if said:
+                    del self.history[mark:]     # the question was not answered: drop it so asking again starts clean
+                    raise pro.ProError(said) from e
+                raise
             self.history.append({"role": "assistant", "content": resp.content})
             if resp.stop_reason != "tool_use":
                 return "".join(b.text for b in resp.content if b.type == "text").strip()

@@ -6,7 +6,7 @@ from iris import prices
 
 def clean_symbol(s) -> str:
     """Token symbols come from third parties; keep them short and harmless (they also reach the AI)."""
-    return re.sub(r"[^A-Za-z0-9$._\-]", "", str(s or ""))[:12] or "?"
+    return re.sub(r"[^A-Za-z0-9$._=^\-]", "", str(s or ""))[:15] or "?"
 
 
 def holding(symbol: str, amount: float, where: str = "", usd: float | None = "auto") -> dict:

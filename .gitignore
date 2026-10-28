@@ -1,0 +1,30 @@
+# Everything a user enters lives in ./data and must NEVER be committed
+data/*
+!data/.gitkeep
+
+# keys / env files, just in case
+.env
+.env.*
+*.key
+*.pem
+vault.json
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# desktop app build output
+desktop/node_modules/
+desktop/build/
+desktop/src-tauri/target/
+desktop/src-tauri/server/
+desktop/src-tauri/gen/

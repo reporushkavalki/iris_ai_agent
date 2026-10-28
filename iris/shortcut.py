@@ -42,7 +42,7 @@ def _unix() -> str | None:
 
 
 ICON_NAME = "iris.ico"          # a new file name whenever the picture changes: Windows keeps old pictures cached by file name
-LAUNCHER_NAME = "LAUNCH IRIS -- (Start here).bat"        # plain ASCII on purpose: Windows tools mangle special characters in file names
+LAUNCHER_NAME = "LAUNCH IRIS.bat"        # plain ASCII on purpose: Windows tools mangle special characters in file names
 
 
 def launcher():

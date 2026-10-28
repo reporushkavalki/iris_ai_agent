@@ -276,7 +276,13 @@ body.speaking #mute{border-color:var(--c);color:#fff;animation:blink 1.2s infini
 .wrow .n small,.srow .n small{display:block;color:var(--dim);font-size:12px;overflow:hidden;text-overflow:ellipsis}
 .addform{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
 .addform .full{grid-column:1/-1}
-.addform input,.addform select{font-size:15px;padding:8px 10px;width:100%}
+.addform input,.addform select,.addform textarea,.krow textarea{font-size:15px;padding:8px 10px;width:100%;font-family:inherit;background:rgba(var(--d-rgb),.5);color:var(--text);border:1px solid var(--line);border-radius:4px;resize:vertical}
+.addform .hint{font-size:13px;color:var(--dim);line-height:1.4}
+.krow{padding:6px 0;border-bottom:1px dashed rgba(var(--c-rgb),.16)}.khead{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
+.krow .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.krow .n small{display:block;color:var(--dim);font-size:12px}.krow textarea{margin:8px 0 6px}
+.probox{border:1px solid var(--line);border-radius:6px;background:rgba(var(--p-rgb),.45);padding:10px 14px;margin-bottom:10px}.probox.on{border-color:rgba(var(--pos-rgb),.5)}
+.probox .prow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.probox .hint{font-size:13px;color:var(--dim);line-height:1.4}.probox .hint.neg{color:var(--neg)}.probox a{color:var(--c)}
+.allowbar{height:6px;border-radius:3px;background:rgba(var(--c-rgb),.14);margin:6px 0;overflow:hidden}.allowbar i{display:block;height:100%;background:var(--c)}
 .nets{display:flex;gap:6px;flex-wrap:wrap}
 .msg{font-size:14px;margin-top:6px}
 .msg.err{color:var(--neg)}
@@ -381,3 +387,6 @@ button.sw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(var(--c-rgb),.5)}
 .inprice{font-size:18px;margin:6px 0 10px;color:#fff}
 #inner .cta,#inOpen{display:block;text-align:center;text-decoration:none;color:#fff!important;padding:12px 16px;font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:.2em;border:1px solid var(--c2);border-radius:4px;background:linear-gradient(90deg,rgba(var(--c-rgb),.22),rgba(var(--c2-rgb,var(--c-rgb)),.12))}
 #inner .cta:disabled{opacity:.55;cursor:not-allowed}
+.pill.pro{background:rgba(255,200,70,.14);color:#ffc846;border-color:rgba(255,200,70,.45)}
+.locked-card{opacity:.82;border-style:dashed}
+.locked-card .bl{opacity:.8}

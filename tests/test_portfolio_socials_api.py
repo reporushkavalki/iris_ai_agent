@@ -63,21 +63,21 @@ def test_status_with_one_failing_account(monkeypatch, fake_prices):
 
 # ---------- API ----------
 def test_api_never_returns_a_saved_secret():
-    r = client.post("/api/connections/binance", json={"values": {"api_key": "PUBLICKEY1234567", "api_secret": "VERYSECRET7654321"}})
+    r = client.post("/api/connections/kraken", json={"values": {"api_key": "PUBLICKEY1234567", "api_secret": "VERYSECRET7654321"}})
     assert r.status_code == 200
     text = json.dumps(client.get("/api/connections").json(), ensure_ascii=False)
     assert "VERYSECRET7654321" not in text and "PUBLICKEY1234567" not in text and "••••4321" in text
-    b = [p for p in r.json()["providers"] if p["id"] == "binance"][0]
+    b = [p for p in r.json()["providers"] if p["id"] == "kraken"][0]
     assert b["locked"] and b["configured"]
-    assert client.post("/api/connections/binance", json={"values": {"api_key": "x" * 12}}).status_code == 409   # locked
-    assert client.post("/api/connections/binance/remove").status_code == 409
-    assert client.post("/api/connections/binance/lock", json={"locked": False}).status_code == 200
-    assert client.post("/api/connections/binance/remove").status_code == 200
+    assert client.post("/api/connections/kraken", json={"values": {"api_key": "x" * 12}}).status_code == 409   # locked
+    assert client.post("/api/connections/kraken/remove").status_code == 409
+    assert client.post("/api/connections/kraken/lock", json={"locked": False}).status_code == 200
+    assert client.post("/api/connections/kraken/remove").status_code == 200
 
 
 def test_api_requires_all_required_fields():
-    r = client.post("/api/connections/okx", json={"values": {"api_key": "onlykey123456"}})
-    assert r.status_code == 400 and "Passphrase" in r.json()["detail"]
+    r = client.post("/api/connections/kraken", json={"values": {"api_key": "onlykey123456"}})
+    assert r.status_code == 400 and "private key" in r.json()["detail"].lower()
 
 
 def test_api_rejects_foreign_origin_and_host():
@@ -190,8 +190,8 @@ def test_agent_tool_loop_and_no_key(monkeypatch, fake_prices):
         agent.Iris().ask("hi")                                  # no key saved yet
     vault.save("anthropic", {"api_key": "sk-ant-test-0123456789"})
     reply = agent.Iris().ask("what do I have?")
-    assert reply == "You have $60,000." and calls[0]["model"] == "claude-sonnet-5-5"
-    assert {t["name"] for t in calls[0]["tools"]} == {"get_portfolio", "get_holdings", "get_positions", "get_prices", "get_pnl_calendar", "get_socials", "get_market_pulse"}
+    assert reply == "You have $60,000." and calls[0]["model"] == "claude-haiku-5-5"
+    assert {t["name"] for t in calls[0]["tools"]} == {"get_portfolio", "get_holdings", "get_positions", "get_prices", "get_pnl_calendar", "get_socials", "get_market_pulse", "get_quote", "get_defi"}
 
 
 def test_no_tool_can_move_money():
@@ -222,7 +222,7 @@ def test_help_page_readme_and_docs_routes():
 
 def test_sponsor_links_are_present():
     html = client.get("/").text
-    for url in ("https://promo.chartinginteractive.io", "https://solanasniper.ai", "https://wicksync.io"):
+    for url in ("https://promo.chartinginteractive.io", "https://solanasniper.ai"):
         assert url in html
     assert "/help" in html
 

@@ -229,7 +229,7 @@ function renderTotal() {
     ${Object.values(s.pnl).some(p => p && p.partial) ? '<div class="sub">* tracking started later than the period; PnL counts from then.</div>' : ''}`;
 }
 
-const KIND = { exchange: 'EXCHANGE', wallet: 'WALLET' };
+const KIND = { exchange: 'EXCHANGE', wallet: 'WALLET', stocks: 'STOCKS' };
 function renderAccounts() {
   const s = ST, el = $('#accts');
   if (!s.accounts.length) { el.innerHTML = '<div class="sub">No accounts yet.</div>'; return }
@@ -353,7 +353,9 @@ function renderAll() {
   const s = ST;
   $('#connBtn').classList.toggle('cta', !!s.demo);   // demo on: CONNECTIONS pulses until the demo is turned off and real accounts are added
   $('#demoBanner').hidden = !s.demo; $('#scBtn').hidden = !s.can_shortcut; if (typeof DONATE !== 'undefined') DONATE.sync(s);
-  $('#welcome').hidden = s.configured || s.demo || s.has_socials;
+  $('#welcome').hidden = s.configured || s.demo || s.has_socials || store.get('nx_welcome_hide', '') === '1';
+  const src = { own: 'Ask Iris (your Claude key)…', pro: 'Ask Iris (Iris AI, Pro)…', none: 'Ask Iris (built-in help only: add a Claude key or Iris Pro for AI)…' }[s.ai_source];
+  if (src) $('#msg').placeholder = src;
   renderTotal(); renderAccounts(); renderAlloc(); renderTiles(); renderPositions(); renderHoldings();
 }
 async function refreshStatus(force) {
@@ -540,13 +542,21 @@ function openInfo(id) {
 }
 $('#iclose').onclick = closeInfo;
 $('#info').addEventListener('mousedown', e => { if (e.target === $('#info')) closeInfo() });
-const GROUPS = [['ai', 'g-ai', 'CLAUDE AI (CHAT)'], ['exchange', 'g-ex', 'EXCHANGES'], ['wallet', 'g-wallet', 'WALLETS (PUBLIC ADDRESSES)'],
-  ['social', 'g-social', 'SOCIALS'], ['network', 'g-net', 'ADVANCED']];
+const GROUPS = [['pro', 'g-pro', 'IRIS PRO'], ['ai', 'g-ai', 'CLAUDE AI (CHAT)'], ['exchange', 'g-ex', 'EXCHANGES & BROKERS'], ['wallet', 'g-wallet', 'WALLETS (PUBLIC ADDRESSES)'], ['stocks', 'g-stocks', 'STOCKS & COMMODITIES'],
+  ['social', 'g-social', 'SOCIALS 🔒'], ['network', 'g-net', 'ADVANCED 🔒']];
 function capture() { const m = {}; $$('#mbody [data-key]').forEach(i => { if (!i.disabled) m[i.dataset.key] = i.type === 'checkbox' ? i.checked : i.value }); return m }
 function restore(m) { $$('#mbody [data-key]').forEach(i => { if (i.disabled || !(i.dataset.key in m)) return; if (i.type === 'checkbox') i.checked = m[i.dataset.key]; else i.value = m[i.dataset.key] }) }
 
+function lockedCard(p) {      // a Pro-only connection on the free plan: listed, but behind the lock
+  return `<div class="card locked-card" id="card-${p.id}"><div class="ch"><b>🔒 ${esc(p.title)}</b>${infoBtn(p.id, p.title)}<span class="pill pro">PRO</span><div class="sp"></div></div>
+    <div class="bl">${esc(p.blurb)}</div><div class="cbtn"><button type="button" data-act="gopro">🔒 UNLOCK WITH IRIS PRO</button></div></div>`;
+}
 function providerCard(p) {
+  if (p.needs_pro) return lockedCard(p);
   const saved = p.fields.some(f => f.set), L = p.locked;
+  const hosted = p.id === 'anthropic' && !p.configured && CONN && CONN.pro && CONN.pro.active;    // Pro and no own key: the included Iris AI is answering
+  const pill = hosted ? '<span class="pill on">IRIS AI ACTIVE</span>' : `<span class="pill ${p.configured ? 'on' : ''}">${p.configured ? 'CONNECTED' : 'NOT SET'}</span>`;
+  const blurb = hosted ? 'You do not need to fill this in: the advanced Iris AI is included with your Pro plan and already answers in the chat. Add your own Claude key only if you prefer to use yours (it is then always used first, and you choose the model).' : p.blurb;
   const fields = p.fields.map(f => {
     const key = `${p.id}:${f.key}`; let ctl;
     if (f.options) ctl = `<select data-key="${esc(key)}" ${L ? 'disabled' : ''}>${f.options.map(o => `<option ${o === (f.value || f.default) ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
@@ -557,15 +567,48 @@ function providerCard(p) {
   const btns = L
     ? `<button type="button" data-act="unlock" data-id="${p.id}">UNLOCK TO EDIT</button><button type="button" data-act="test" data-id="${p.id}">TEST</button>`
     : `<button type="button" class="primary" data-act="save" data-id="${p.id}">SAVE &amp; LOCK</button>${saved ? `<button type="button" data-act="test" data-id="${p.id}">TEST</button><button type="button" data-act="remove" data-id="${p.id}">REMOVE</button>` : ''}`;
-  return `<div class="card" id="card-${p.id}"><div class="ch"><b>${esc(p.title)}</b>${infoBtn(p.id, p.title)}<span class="pill ${p.configured ? 'on' : ''}">${p.configured ? 'CONNECTED' : 'NOT SET'}</span>${L ? '<span class="pill lock">LOCKED</span>' : ''}<div class="sp"></div>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--c);font-size:13px">Get a key ↗</a>` : ''}</div>
-    <div class="bl">${esc(p.blurb)}</div>${fields}<div class="cbtn">${btns}</div><div class="res" id="res-${p.id}"></div></div>`;
+  return `<div class="card" id="card-${p.id}"><div class="ch"><b>${esc(p.title)}</b>${infoBtn(p.id, p.title)}${pill}${L ? '<span class="pill lock">LOCKED</span>' : ''}<div class="sp"></div>${p.link ? `<a href="${esc(p.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--c);font-size:13px">Get a key ↗</a>` : ''}</div>
+    <div class="bl">${esc(blurb)}</div>${fields}<div class="cbtn">${btns}</div><div class="res" id="res-${p.id}"></div></div>`;
+}
+
+function proStatusHtml(P) {
+  if (!P) return '';
+  const ai = P.ai || {}, used = typeof ai.used_pct === 'number' ? Math.max(0, Math.min(100, ai.used_pct)) : null;
+  if (P.active) {
+    return `<div class="probox on"><div class="prow"><span class="pill on">PRO ACTIVE</span>${P.expires ? `<span class="hint">renews / ends ${esc(P.expires)}</span>` : ''}${P.offline ? '<span class="hint">offline: using the last check</span>' : ''}</div>
+      <div class="hint">No limit on accounts. ${used === null ? 'The advanced Iris AI is included.' : `Advanced Iris AI included: ${used}% of this month's allowance used${ai.resets ? ' (resets ' + esc(ai.resets) + ')' : ''}.`}</div>
+      ${used === null ? '' : `<div class="allowbar"><i style="width:${used}%"></i></div>`}
+      <div class="hint">Your own Claude key, if you save one below, is always used first.</div></div>`;
+  }
+  const lim = P.free_account_limit || 5;
+  return `<div class="probox"><div class="prow"><span class="pill">FREE PLAN</span><span class="hint">${P.accounts_used || 0} of ${lim} accounts used (exchanges, wallets and stock accounts together)</span></div>
+    ${P.has_key && P.reason ? `<div class="hint neg">${esc(P.reason)}</div>` : ''}
+    <div class="hint"><b>Free plan:</b> Claude AI (Haiku 5.5) with your own key, one exchange (Kraken), wallets, stocks &amp; commodities. Everything marked 🔒 below is Pro.</div>
+    <div class="hint"><b>Iris Pro:</b> all connections unlocked (more exchanges, brokers, socials), no account limit, the <b>advanced Iris AI</b> (Claude Sonnet 5.5, no key needed), DeFi data, early access and the Inner Circle. $9.99 a month or $89.99 a year.${P.upgrade_url ? ` <a href="${esc(P.upgrade_url)}" target="_blank" rel="noopener noreferrer">Get Iris Pro ↗</a>` : ''}</div></div>`;
+}
+function stockRow(a) {
+  const L = a.locked, n = a.items.length;
+  return `<div class="krow"><div class="khead"><span class="n">${esc(a.name)}<small>${n} holding${n === 1 ? '' : 's'}: ${esc(a.items.slice(0, 4).map(i => i.symbol).join(', '))}${n > 4 ? '…' : ''}</small></span>
+    <button type="button" class="mini" data-act="klock" data-name="${esc(a.name)}" data-locked="${L}">${L ? 'LOCKED' : 'UNLOCKED'}</button>
+    <button type="button" class="mini" data-act="kremove" data-name="${esc(a.name)}" ${L ? 'disabled title="Unlock first"' : ''}>REMOVE</button></div>
+    ${L ? '' : `<textarea data-key="k-edit-${esc(a.name)}" rows="4" spellcheck="false">${esc(a.text)}</textarea><div><button type="button" class="mini" data-act="kupdate" data-name="${esc(a.name)}">SAVE HOLDINGS</button></div>`}</div>`;
 }
 
 function renderConn() {
   const C = CONN, mem = capture(); let h = '';
   for (const [g, anchor, title] of GROUPS) {
     h += `<div class="mgroup" id="${anchor}"><div class="ptitle">${title}${g === 'wallet' ? infoBtn('wallets', 'Wallets') : ''}</div>`;
-    if (g === 'wallet') {
+    if (g === 'pro') {
+      h += `<div id="pro-status">${proStatusHtml(C.pro)}</div>` + C.providers.filter(p => p.group === 'pro').map(providerCard).join('');
+    } else if (g === 'stocks') {
+      h += '<div class="sub">Type what you hold in shares, ETFs or commodities (no key needed). Prices come from Yahoo Finance and are often delayed about 15 minutes; add a free Finnhub key under ADVANCED for steadier US prices.</div>';
+      h += (C.stock_accounts || []).length ? C.stock_accounts.map(stockRow).join('') : '<div class="sub">No stock accounts yet.</div>';
+      h += `<div class="addform"><input data-key="k-name" placeholder="Name (e.g. Nordnet)" maxlength="24">
+        <div class="hint" style="align-self:center">One line per holding: SYMBOL AMOUNT</div>
+        <textarea class="full" data-key="k-text" rows="4" spellcheck="false" placeholder="AAPL 10&#10;NESTE.HE 100&#10;GOLD 2.5&#10;OIL 10"></textarea>
+        <div class="hint full">Symbols work like on Yahoo Finance (NESTE.HE for Helsinki, VOD.L for London). Commodity names: GOLD, SILVER, PLATINUM, COPPER, OIL, BRENT, GAS, WHEAT, CORN, COFFEE (gold and silver count in ounces, oil in barrels).</div>
+        <div class="full"><button type="button" class="primary" data-act="kadd">ADD ACCOUNT</button></div></div><div class="msg err" id="k-msg"></div>`;
+    } else if (g === 'wallet') {
       h += C.wallets.length ? C.wallets.map(w => `<div class="wrow"><span class="n">${esc(w.name)}<small>${esc(C.chains[w.chain] || w.chain)} · ${esc(w.address.slice(0, 6) + '…' + w.address.slice(-6))}${w.chain === 'evm' ? ' · ' + esc(w.networks.join(', ')) : ''}</small></span>
         <button type="button" class="mini" data-act="wlock" data-name="${esc(w.name)}" data-locked="${w.locked}">${w.locked ? 'LOCKED' : 'UNLOCKED'}</button>
         <button type="button" class="mini" data-act="wremove" data-name="${esc(w.name)}" ${w.locked ? 'disabled title="Unlock first"' : ''}>REMOVE</button></div>`).join('') : '<div class="sub">No wallets yet. Only PUBLIC addresses; Iris can look but never move anything.</div>';
@@ -577,6 +620,10 @@ function renderConn() {
     } else if (g === 'social') {
       h += C.providers.filter(p => p.group === 'social').map(providerCard).join('');
       h += `<div class="ptitle" style="margin-top:14px">TRACKED ACCOUNTS${infoBtn('social_accounts', 'Tracked accounts')}</div>`;
+      if (!(C.pro && C.pro.active) && !C.social_accounts.length) {
+        h += '<div class="card locked-card"><div class="ch"><b>🔒 Tracked social accounts</b><span class="pill pro">PRO</span></div><div class="bl">Follow your channels and pages (followers, views, posts) next to your portfolio.</div><div class="cbtn"><button type="button" data-act="gopro">🔒 UNLOCK WITH IRIS PRO</button></div></div></div>';
+        continue;
+      }
       h += C.social_accounts.length ? C.social_accounts.map(a => `<div class="srow"><span class="n">${esc(a.name)}<small>${esc((C.platforms[a.platform] || {}).label || a.platform)} · ${esc(a.handle)}</small></span>
         <button type="button" class="mini" data-act="slock" data-name="${esc(a.name)}" data-locked="${a.locked}">${a.locked ? 'LOCKED' : 'UNLOCKED'}</button>
         <button type="button" class="mini" data-act="sremove" data-name="${esc(a.name)}" ${a.locked ? 'disabled title="Unlock first"' : ''}>REMOVE</button></div>`).join('') : '<div class="sub">No accounts yet. Add the key for a platform above, then the account here (Discord needs no key).</div>';
@@ -599,11 +646,13 @@ $('#mbody').addEventListener('change', e => { if (e.target.dataset.key === 'w-ch
 async function openConn(anchor) {
   try { CONN = await api('/api/connections') } catch (e) { return }
   $('#modal').hidden = false; document.body.style.overflow = 'hidden'; renderConn();
+  if (CONN.pro && CONN.pro.has_key) api('/api/pro/refresh', {}).then(p => { CONN.pro = p; const el = $('#pro-status'); if (el) el.innerHTML = proStatusHtml(p) }).catch(() => {});
   if (anchor) { const el = document.getElementById(anchor); if (el) el.scrollIntoView({ block: 'start' }) } else $('#modal').scrollTop = 0;
 }
 function closeConn() { if ($('#modal').hidden) return; $('#modal').hidden = true; document.body.style.overflow = ''; everything() }
 $('#connBtn').onclick = () => openConn(); $('#mclose').onclick = closeConn;
 $('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) closeConn() });
+$('#wHide').onclick = () => { store.set('nx_welcome_hide', '1'); if (ST) renderAll() };
 $('#wOpen').onclick = () => openConn(); $('#wDemo').onclick = () => setDemo(true); $('#demoOff').onclick = () => setDemo(false);
 $('#socAdd').onclick = () => openConn('g-social');
 $('#soc').addEventListener('click', e => { if (e.target.closest('[data-open-social]')) openConn('g-social') });
@@ -626,6 +675,7 @@ $('#mbody').addEventListener('click', async e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const act = b.dataset.act, id = b.dataset.id, name = b.dataset.name, say = (m, err) => { const t = $('#w-msg'); if (t) t.textContent = m };
   if (act === 'info') { openInfo(id); return }
+  if (act === 'gopro') { const el = document.getElementById('g-pro'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); return }
   try {
     if (act === 'save') {
       const p = CONN.providers.find(x => x.id === id), values = {};
@@ -653,11 +703,19 @@ $('#mbody').addEventListener('click', async e => {
       ['s-name', 's-handle'].forEach(k => { const i = $(`#mbody [data-key="${k}"]`); if (i) i.value = '' }); renderConn();
     } else if (act === 'slock') { CONN = await api('/api/social-accounts/lock', { name, locked: b.dataset.locked !== 'true' }); renderConn() }
     else if (act === 'sremove') { if (!confirmTwice(b, 's' + name)) return; CONN = await api('/api/social-accounts/remove', { name }); renderConn() }
+    else if (act === 'kadd') {
+      const v = k => { const i = $(`#mbody [data-key="${k}"]`); return i ? i.value : '' };
+      CONN = await api('/api/stocks', { name: v('k-name').trim(), text: v('k-text') });
+      ['k-name', 'k-text'].forEach(k => { const i = $(`#mbody [data-key="${k}"]`); if (i) i.value = '' }); renderConn();
+    } else if (act === 'klock') { CONN = await api('/api/stocks/lock', { name, locked: b.dataset.locked !== 'true' }); renderConn() }
+    else if (act === 'kremove') { if (!confirmTwice(b, 'k' + name)) return; CONN = await api('/api/stocks/remove', { name }); renderConn() }
+    else if (act === 'kupdate') { const t = $(`#mbody [data-key="k-edit-${name}"]`); CONN = await api('/api/stocks/update', { name, text: t ? t.value : '' }); renderConn() }
     else if (act === 'demo') { await setDemo(b.dataset.on === 'true') }
   } catch (err) {
     const msg = esc(err.message);
     if (['wadd', 'wlock', 'wremove'].includes(act)) $('#w-msg').innerHTML = msg;
     else if (['sadd', 'slock', 'sremove'].includes(act)) $('#s-msg').innerHTML = msg;
+    else if (['kadd', 'klock', 'kremove', 'kupdate'].includes(act)) $('#k-msg').innerHTML = msg;
     else if (id) showRes(id, `<div class="l neg">✖ ${msg}</div>`);
   }
 });

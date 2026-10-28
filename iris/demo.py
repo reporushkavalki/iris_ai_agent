@@ -45,6 +45,7 @@ def _accounts() -> list[dict]:
         _acct("wallet:ETH Vault", "ETH Vault", "wallet", "evm", "Ethereum, Base, Arbitrum", [
             ("ETH", 2.6, 8330.0, "ethereum"), ("USDC", 2400.0, 2400.0, "base"), ("ARB", 1800.0, 1050.0, "arbitrum"), ("LINK", 40.0, 670.0, "ethereum")]),
         _acct("wallet:Cold BTC", "Cold BTC", "wallet", "bitcoin", "Bitcoin", [("BTC", 0.46, 30850.0, "wallet")]),
+        _acct("stocks:Nordnet", "Nordnet (demo)", "stocks", "stocks", "", [("AAPL", 25.0, 5400.0, "shares"), ("NESTE.HE", 120.0, 2150.0, "shares"), ("GC=F", 1.5, 3600.0, "commodity")]),
     ]
 
 

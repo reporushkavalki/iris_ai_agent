@@ -22,6 +22,18 @@ def test(pid: str) -> dict:
             danger = any(w["level"] == "danger" for w in perms)
             return {"ok": True, "message": f"Connected. {_fmt_usd(acct['total_usd'])} across {len(acct['holdings'])} assets.",
                     "notes": acct["warnings"] + notes, "danger": danger}
+        if pid == "pro":
+            from iris import pro
+            st = pro.status(force=True)
+            if not st["active"]:
+                return {"ok": False, "message": st["reason"] or "This license is not active.", "notes": []}
+            ai = st.get("ai") or {}
+            left = f" AI allowance used this month: {ai['used_pct']}%." if isinstance(ai.get("used_pct"), (int, float)) else ""
+            return {"ok": True, "message": "Iris Pro is active." + left, "notes": ["No internet to the Pro server right now: using the last check."] if st.get("offline") else []}
+        if pid == "finnhub":
+            from iris import stocks
+            q = stocks._from_finnhub("AAPL", vals["api_key"])
+            return {"ok": True, "message": f"Finnhub key works (AAPL ${q['price']:.2f}).", "notes": []}
         if pid == "anthropic":
             import anthropic
             anthropic.Anthropic(api_key=vals["api_key"]).models.list(limit=1)

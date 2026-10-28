@@ -42,6 +42,12 @@ PREFS_FILE = DATA_DIR / "prefs.json"        # small settings (demo mode, timezon
 PORTFOLIO_DB = DATA_DIR / "portfolio.db"    # balance snapshots
 SOCIALS_DB = DATA_DIR / "socials.db"        # follower snapshots
 WEB_DIR = ROOT / "web"
+STOCKS_FILE = DATA_DIR / "stocks.json"      # stock / commodity holdings typed in by hand
+PRO_FILE = DATA_DIR / "pro.json"            # last answer of the Pro server (no secrets), so Pro keeps working offline for a few days
+
+# Iris Pro. The Pro server holds the Claude key; nothing secret is ever in this program.
+PRO_URL = os.getenv("IRIS_PRO_URL", "https://iris-pro.whalesync-app.workers.dev").rstrip("/")
+UPGRADE_URL = os.getenv("IRIS_UPGRADE_URL", "https://iris-ai-agents.netlify.app/#pricing")      # where "Get Pro" links go (the sales page price section); empty = no link
 
 # What moving to a new data folder copies. Logs, the desktop-icon marker and temp files are left behind.
 _SKIP_SUFFIX = (".log", ".tmp", ".bak", "-wal", "-shm", "-journal")

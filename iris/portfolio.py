@@ -13,13 +13,13 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from datetime import datetime, timedelta
 
-from iris import model, net, prefs, prices, providers, vault
+from iris import model, net, prefs, prices, providers, stocks, stocks_store, vault
 from iris.chains import fetch_wallet, wallets_store
 from iris.config import PORTFOLIO_DB
 from iris.exchanges import EXCHANGES
 
 MIN_GAP = 300                      # seconds between saved snapshots
-TTL = {"exchange": 30, "wallet": 60}
+TTL = {"exchange": 30, "wallet": 60, "stocks": 120}
 PERIODS = {"d1": (86400, 2 * 3600), "d7": (7 * 86400, 6 * 3600), "d30": (30 * 86400, 12 * 3600)}   # span, staleness tolerance
 RANGES = {"1d": 86400, "1w": 7 * 86400, "1m": 30 * 86400, "3m": 90 * 86400}
 STABLE_SYMBOLS = set(prices.STABLES) | {"EUR", "GBP"}
@@ -40,6 +40,8 @@ def sources() -> list[tuple]:
             out.append((f"ex:{ex_id}", cls.name, "exchange", ex_id, lambda cls=cls, vals=vals: cls(vals).fetch()))
     for w in wallets_store.load():
         out.append((f"wallet:{w['name']}", w["name"], "wallet", w["chain"], lambda w=w: fetch_wallet(w)))
+    for a in stocks_store.load():
+        out.append((f"stocks:{a['name']}", a["name"], "stocks", "stocks", lambda a=a: stocks.fetch_account(a)))
     return out
 
 

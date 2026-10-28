@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from iris import __version__, connections, donate, guide, inner, market, portfolio, prefs, prices, providers, say, shortcut, socials, vault
+from iris import __version__, connections, donate, guide, inner, market, portfolio, pro, prefs, prices, providers, say, shortcut, socials, stocks_store, vault
 from iris.chains import wallets_store
 from iris.config import DATA_DIR, PACKAGED, ROOT, WEB_DIR, import_data, import_legacy_if_new
 from iris.help_text import HELP
@@ -93,7 +93,9 @@ def readme_md():
 @app.get("/api/status")
 def status(force: bool = False):
     st = dict(portfolio.status(force=force))
-    st["ai_ready"] = providers.is_configured("anthropic")
+    st["ai_ready"] = providers.is_configured("anthropic") or pro.ai_ready()
+    st["ai_source"] = "own" if providers.is_configured("anthropic") else ("pro" if pro.ai_ready() else "none")     # which AI answers the chat
+    st["pro"] = {k: v for k, v in pro.cached_status().items() if k in ("plan", "active", "offline")}
     st["has_socials"] = bool(socials.load()) or st.get("demo", False)
     st["can_shortcut"] = shortcut.supported()
     st["can_say"] = say.supported()
@@ -166,11 +168,14 @@ def reset(body: Reset):
 # ---------------- connections (keys) ----------------
 def _connections_payload() -> dict:
     return {
-        "providers": [providers.public_view(p["id"]) for p in providers.PROVIDERS],
+        "providers": [{**providers.public_view(p["id"]), "pro_only": not pro.is_free_provider(p["id"]), "needs_pro": pro.needs_pro(p["id"])}
+                      for p in providers.PROVIDERS],
         "wallets": wallets_store.load(), "chains": wallets_store.CHAINS, "evm_networks": wallets_store.EVM_NETWORKS,
         "default_evm": wallets_store.DEFAULT_EVM,
         "social_accounts": socials.load(), "platforms": {k: {"label": v["label"], "handle": v["handle"], "needs_key": v["needs_key"],
                                                             "key_ready": socials.configured(k)} for k, v in socials.PLATFORMS.items()},
+        "stock_accounts": [{**a, "text": stocks_store.as_text(a)} for a in stocks_store.load()],
+        "pro": pro.public_view(),
         "demo": prefs.demo_on(), "help": {"wallets": HELP["wallets"], "social_accounts": HELP["social_accounts"]},
     }
 
@@ -190,6 +195,17 @@ def connection_save(pid: str, body: Values):
         _bad(KeyError("unknown connection"), 404)
     allowed = {f["key"] for f in providers.BY_ID[pid]["fields"]}
     clean = {k: v for k, v in body.values.items() if k in allowed and isinstance(v, str) and len(v) <= 2000}
+    if providers.BY_ID[pid]["group"] == "exchange" and not providers.is_configured(pid):
+        try:
+            pro.check_provider(pid)       # only Binance and Bybit are free
+            pro.check_can_add()           # the free plan connects up to 5 accounts
+        except ValueError as e:
+            _bad(e, 402)
+    if providers.BY_ID[pid]["group"] != "exchange":
+        try:
+            pro.check_provider(pid)       # socials and advanced keys are Pro
+        except ValueError as e:
+            _bad(e, 402)
     merged = {**vault.get(pid), **{k: v.strip() for k, v in clean.items() if v.strip()}}
     missing = [f["label"] for f in providers.BY_ID[pid]["fields"] if f["required"] and not merged.get(f["key"])]
     if missing and not vault.is_locked(pid):
@@ -199,6 +215,8 @@ def connection_save(pid: str, body: Values):
     except PermissionError as e:
         _bad(e, 409)
     portfolio._status_cache["t"] = 0
+    if pid == "pro":
+        pro.refresh()                     # check the license right away, so the card shows the result
     return _connections_payload()
 
 
@@ -222,6 +240,8 @@ def connection_remove(pid: str):
     except PermissionError as e:
         _bad(e, 409)
     portfolio._status_cache["t"] = 0
+    if pid == "pro":
+        pro.forget()
     return _connections_payload()
 
 
@@ -259,9 +279,18 @@ def _change(fn):
     return _connections_payload()
 
 
+def _change_capped(fn):
+    """Like _change, but a new account must fit the plan (the free plan connects up to 5)."""
+    try:
+        pro.check_can_add()
+    except ValueError as e:
+        _bad(e, 402)
+    return _change(fn)
+
+
 @app.post("/api/wallets")
 def wallet_add(b: WalletIn):
-    return _change(lambda: wallets_store.add(b.name, b.address, b.chain, b.networks))
+    return _change_capped(lambda: wallets_store.add(b.name, b.address, b.chain, b.networks))
 
 
 @app.post("/api/wallets/lock")
@@ -283,7 +312,10 @@ class SocialIn(BaseModel):
 
 @app.post("/api/social-accounts")
 def social_add(b: SocialIn):
-    return _change(lambda: socials.add(b.name, b.platform, b.handle))
+    def go():
+        pro.check_feature("Tracking social accounts")
+        socials.add(b.name, b.platform, b.handle)
+    return _change(go)
 
 
 @app.post("/api/social-accounts/lock")
@@ -297,6 +329,44 @@ def social_remove(b: Named):
         socials.remove(b.name)
         socials.forget(b.name)
     return _change(go)
+
+
+# ---------------- stocks and commodities (typed in by hand) ----------------
+class StockIn(BaseModel):
+    name: str
+    text: str = Field(max_length=4000)
+
+
+@app.post("/api/stocks")
+def stock_add(b: StockIn):
+    return _change_capped(lambda: stocks_store.add(b.name, b.text))
+
+
+@app.post("/api/stocks/update")
+def stock_update(b: StockIn):
+    return _change(lambda: stocks_store.update_items(b.name, b.text))
+
+
+@app.post("/api/stocks/lock")
+def stock_lock(b: NamedLock):
+    return _change(lambda: stocks_store.set_locked(b.name, b.locked))
+
+
+@app.post("/api/stocks/remove")
+def stock_remove(b: Named):
+    return _change(lambda: stocks_store.remove(b.name))
+
+
+# ---------------- Iris Pro ----------------
+@app.get("/api/pro")
+def pro_status():
+    return pro.public_view()
+
+
+@app.post("/api/pro/refresh")
+def pro_refresh():
+    pro.refresh()
+    return pro.public_view()
 
 
 # ---------------- demo + chat ----------------
@@ -330,6 +400,8 @@ def chat(body: Chat):
         try:
             _agent = _agent or Iris()
             return {"reply": _agent.ask(text)}
+        except pro.ProError as e:
+            return {"reply": str(e), "error": True}
         except PermissionError:
             # no Claude key yet: the built-in guide explains the app and answers simple questions (free, offline)
             reply, focus = guide.answer_focus(text, portfolio.status())

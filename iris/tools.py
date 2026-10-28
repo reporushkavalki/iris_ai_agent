@@ -1,7 +1,7 @@
 """The AI's tools. All read-only: there is no function that trades, transfers or withdraws."""
 import json
 
-from iris import market, portfolio, prices, socials, vault
+from iris import defi, market, net, portfolio, pro, prices, socials, stocks, vault
 
 
 def _schema(name, description, props=None, required=None):
@@ -18,6 +18,14 @@ SCHEMAS = [
     _schema("get_positions", "Open futures/perpetual positions across all exchanges: side, size, entry, mark, leverage, liquidation price, unrealised PnL."),
     _schema("get_prices", "Live price, 24h change and a mini trend for up to 10 coins (public market data).",
             {"symbols": {"type": "array", "items": {"type": "string"}, "description": "e.g. ['BTC','ETH']"}}, ["symbols"]),
+    _schema("get_quote", "Live price and daily change for stocks, ETFs and commodities (public data, often delayed ~15 min). Symbols are Yahoo style: AAPL, NESTE.HE, "
+            "or commodities like GOLD, SILVER, OIL, BRENT, GAS, COPPER (also GC=F, CL=F). Use it for any non-crypto price question; for crypto use get_prices.",
+            {"symbols": {"type": "array", "items": {"type": "string"}, "description": "e.g. ['AAPL','GOLD']"}}, ["symbols"]),
+    _schema("get_defi", "DeFi market data from DefiLlama (an Iris Pro feature): the best yields on lending/liquidity pools (kind 'yields', optionally for one chain, one "
+            "project or stablecoins only), the size (TVL) and recent change of protocols (kind 'protocols', optional name or category such as 'lending' or 'dexs'), "
+            "and the biggest chains (kind 'chains'). This is market-wide data, NOT the user's own DeFi positions, which Iris cannot see.",
+            {"kind": {"type": "string", "enum": ["yields", "protocols", "chains"]}, "query": {"type": "string", "description": "protocol name or category (protocols), project name (yields)"},
+             "chain": {"type": "string", "description": "e.g. Ethereum, Solana, Arbitrum (yields only)"}, "stablecoin_only": {"type": "boolean"}}, ["kind"]),
     _schema("get_pnl_calendar", "Balance change per day for a month (deposits/withdrawals count as change).",
             {"month": {"type": "string", "description": "YYYY-MM, default current month"}}),
     _schema("get_market_pulse", "Market and crypto pulse from free public sources: the latest important news and data releases (Fed, BLS CPI/jobs numbers, SEC, crypto news), "
@@ -71,6 +79,33 @@ def get_prices(symbols: list) -> dict:
     return {"markets": [{"symbol": r["symbol"], "price": r["price"], "change_24h_pct": r["change24h"]} for r in rows]}
 
 
+def get_quote(symbols: list) -> dict:
+    rows = []
+    for s in [str(x) for x in symbols][:10]:
+        try:
+            q = stocks.quote(s)
+            rows.append({"symbol": q["symbol"], "name": q["name"], "price": q["price"], "currency": q["currency"], "price_usd": round(q["price_usd"], 4),
+                         "change_pct": q["change24h"], "source": q["source"]})
+        except (net.ApiError, ValueError, TypeError) as e:
+            rows.append({"symbol": s[:15], "error": vault.scrub(str(e))[:120]})
+    return {"quotes": rows, "note": "Prices from public sources, often delayed by about 15 minutes."}
+
+
+def get_defi(kind: str = "yields", query: str = "", chain: str = "", stablecoin_only: bool = False) -> dict:
+    try:
+        pro.check_feature("DeFi data")
+    except ValueError as e:
+        return {"error": str(e)}
+    try:
+        if kind == "protocols":
+            return defi.protocols(str(query or ""))
+        if kind == "chains":
+            return defi.chains()
+        return defi.top_yields(chain=str(chain or ""), project=str(query or ""), stablecoin_only=bool(stablecoin_only))
+    except net.ApiError as e:
+        return {"error": vault.scrub(str(e))[:160]}
+
+
 def get_pnl_calendar(month: str = "") -> dict:
     return portfolio.calendar(month or None)
 
@@ -89,7 +124,7 @@ def get_market_pulse() -> dict:
     return market.get_market_pulse()
 
 
-FUNCS = {"get_market_pulse": get_market_pulse, "get_portfolio": get_portfolio, "get_holdings": get_holdings, "get_positions": get_positions, "get_prices": get_prices,
+FUNCS = {"get_market_pulse": get_market_pulse, "get_portfolio": get_portfolio, "get_holdings": get_holdings, "get_positions": get_positions, "get_prices": get_prices, "get_quote": get_quote, "get_defi": get_defi,
          "get_pnl_calendar": get_pnl_calendar, "get_socials": get_socials}
 
 
