@@ -47,7 +47,7 @@ PRO_FILE = DATA_DIR / "pro.json"            # last answer of the Pro server (no 
 
 # Iris Pro. The Pro server holds the Claude key; nothing secret is ever in this program.
 PRO_URL = os.getenv("IRIS_PRO_URL", "https://iris-pro.whalesync-app.workers.dev").rstrip("/")
-UPGRADE_URL = os.getenv("IRIS_UPGRADE_URL", "https://iris-ai-agents.netlify.app/#pricing")      # where "Get Pro" links go (the sales page price section); empty = no link
+UPGRADE_URL = os.getenv("IRIS_UPGRADE_URL", "https://iris-ai-agent.com/#pricing")      # where "Get Pro" links go (the sales page price section); empty = no link
 
 # What moving to a new data folder copies. Logs, the desktop-icon marker and temp files are left behind.
 _SKIP_SUFFIX = (".log", ".tmp", ".bak", "-wal", "-shm", "-journal")
