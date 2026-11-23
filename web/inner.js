@@ -2,6 +2,7 @@
    The payment goes through the person's own wallet (see donate.js). The Iris server of the developer checks it on the chain and makes a
    join link that works only for the buyer's Telegram username. This page never holds a secret. */
 const INNER = (() => {
+  if (!document.getElementById('innerBtn')) return { open() {}, close() {}, walletUri() {} };   // the inner circle button was removed from the page
   let info = { configured: false, price_sol: '0.2' }, busy = false, poll = null, uri = '';
   const msg = (t, cls) => { const m = $('#inMsg'); m.textContent = t; m.className = 'donmsg' + (cls ? ' ' + cls : '') };
   const view = s => { $('#inBuy').hidden = s !== 'buy'; $('#inDone').hidden = s !== 'done'; $('#inAd').hidden = s === 'done' };

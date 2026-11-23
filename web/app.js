@@ -659,7 +659,7 @@ async function openConn(anchor) {
 function closeConn() { if ($('#modal').hidden) return; $('#modal').hidden = true; document.body.style.overflow = ''; everything() }
 $('#connBtn').onclick = () => openConn(); $('#mclose').onclick = closeConn;
 $('#modal').addEventListener('mousedown', e => { if (e.target === $('#modal')) closeConn() });
-$('#wHide').onclick = () => { store.set('nx_welcome_hide', '1'); if (ST) renderAll() };
+{ const wh = $('#wHide'); if (wh) wh.onclick = () => { store.set('nx_welcome_hide', '1'); if (ST) renderAll() } }
 $('#wOpen').onclick = () => openConn(); $('#wDemo').onclick = () => setDemo(true); $('#demoOff').onclick = () => setDemo(false);
 $('#socAdd').onclick = () => openConn('g-social');
 $('#soc').addEventListener('click', e => { if (e.target.closest('[data-open-social]')) openConn('g-social') });
