@@ -575,16 +575,23 @@ function proStatusHtml(P) {
   if (!P) return '';
   const ai = P.ai || {}, used = typeof ai.used_pct === 'number' ? Math.max(0, Math.min(100, ai.used_pct)) : null;
   if (P.active) {
-    return `<div class="probox on"><div class="prow"><span class="pill on">PRO ACTIVE</span>${P.expires ? `<span class="hint">renews / ends ${esc(P.expires)}</span>` : ''}${P.offline ? '<span class="hint">offline: using the last check</span>' : ''}</div>
+    const day = typeof ai.today_pct === 'number' ? Math.max(0, Math.min(100, ai.today_pct)) : null;
+    const pack = typeof ai.pack_usd === 'number' ? ai.pack_usd : null, dv = P.devices || {};
+    const paused = ai.reason === 'month' ? `This month's Iris AI is used up (resets ${esc(ai.resets || '')}).` : (ai.paused ? `Today's Iris AI is used up. It continues tomorrow, so the month lasts all month.` : '');
+    const buy = typeof ai.pack_price_usd === 'number' ? `<div class="cbtn"><button type="button" data-act="buyai">BUY MORE AI ($${ai.pack_price_usd.toFixed(2)})</button></div>
+      <div class="hint">An AI pack works at once, is used only after your monthly allowance and never expires.</div>` : '';
+    return `<div class="probox on"><div class="prow"><span class="pill on">PRO ACTIVE</span>${P.expires ? `<span class="hint">renews / ends ${esc(P.expires)}</span>` : ''}${P.offline ? '<span class="hint">offline: using the last check</span>' : ''}${dv.max ? `<span class="hint">devices: ${dv.used || 1} of ${dv.max}</span>` : ''}</div>
       <div class="hint">No limit on accounts. ${used === null ? 'The advanced Iris AI is included.' : `Advanced Iris AI included: ${used}% of this month's allowance used${ai.resets ? ' (resets ' + esc(ai.resets) + ')' : ''}.`}</div>
       ${used === null ? '' : `<div class="allowbar"><i style="width:${used}%"></i></div>`}
+      ${day === null ? '' : `<div class="hint">Today: ${day}% of the daily share used.${pack ? ` AI pack left: $${pack.toFixed(2)}.` : ''}</div><div class="allowbar"><i style="width:${day}%"></i></div>`}
+      ${paused ? `<div class="hint neg">${paused}</div>` : ''}${buy}
       <div class="hint">Your own Claude key, if you save one below, is always used first.</div></div>`;
   }
   const lim = P.free_account_limit || 5;
   return `<div class="probox"><div class="prow"><span class="pill">FREE PLAN</span><span class="hint">${P.accounts_used || 0} of ${lim} accounts used (exchanges, wallets and stock accounts together)</span></div>
     ${P.has_key && P.reason ? `<div class="hint neg">${esc(P.reason)}</div>` : ''}
     <div class="hint"><b>Free plan:</b> Claude AI (Haiku 5.5) with your own key, one exchange (Kraken), wallets, stocks &amp; commodities. Everything marked 🔒 below is Pro.</div>
-    <div class="hint"><b>Iris Pro:</b> all connections unlocked (more exchanges, brokers, socials), no account limit, the <b>advanced Iris AI</b> (Claude Sonnet 5.5, no key needed), DeFi data, early access and the Inner Circle. $9.99 a month or $89.99 a year.${P.upgrade_url ? ` <a href="${esc(P.upgrade_url)}" target="_blank" rel="noopener noreferrer">Get Iris Pro ↗</a>` : ''}</div></div>`;
+    <div class="hint"><b>Iris Pro:</b> all connections unlocked (more exchanges, brokers, socials), no account limit, the <b>advanced Iris AI</b> (Claude Sonnet 5.5, no key needed), DeFi data, early access and the Inner Circle. $19.99 a month or $179 a year.${P.upgrade_url ? ` <a href="${esc(P.upgrade_url)}" target="_blank" rel="noopener noreferrer">Get Iris Pro ↗</a>` : ''}</div></div>`;
 }
 function stockRow(a) {
   const L = a.locked, n = a.items.length;
@@ -676,6 +683,7 @@ $('#mbody').addEventListener('click', async e => {
   const act = b.dataset.act, id = b.dataset.id, name = b.dataset.name, say = (m, err) => { const t = $('#w-msg'); if (t) t.textContent = m };
   if (act === 'info') { openInfo(id); return }
   if (act === 'gopro') { const el = document.getElementById('g-pro'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); return }
+  if (act === 'buyai') { b.disabled = true; api('/api/pro/pack', {}).then(r => { if (r && r.url) window.open(r.url, '_blank') }).catch(err => alert(err.message || 'The AI pack page could not be opened.')).finally(() => { b.disabled = false }); return }
   try {
     if (act === 'save') {
       const p = CONN.providers.find(x => x.id === id), values = {};

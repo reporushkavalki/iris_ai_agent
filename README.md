@@ -61,7 +61,7 @@ Iris is free to download. The free plan is small on purpose, four things:
 
 Together the free plan connects up to **5 accounts**. Everything else is listed in Connections with a 🔒 and the PRO tag: Binance, Bybit, OKX, MEXC, Bitget, KuCoin, Gate.io, Alpaca (US stocks broker), Trading 212, Coinbase (all beta), social accounts (YouTube, Instagram, X, Telegram, Discord) and the advanced keys.
 
-**Iris Pro** unlocks every connection, removes the account limit, includes the **advanced Iris AI** (Claude Sonnet 5.5; the chat works without any Claude key, within a monthly allowance), DeFi data (yields and protocol sizes) and gives early access plus the Inner Circle. Price: **$9.99 a month or $89.99 a year**. Paste the license key under **Connections > Iris Pro**. Connections you saved before stay working. Your own Claude key, if you add one, is always used first.
+**Iris Pro** unlocks every connection, removes the account limit, includes the **advanced Iris AI** (Claude Sonnet 5.5; the chat works without any Claude key, within a monthly allowance), DeFi data (yields and protocol sizes) and gives early access plus the Inner Circle. Price: **$19.99 a month or $179 a year**. One license works on 2 devices. When the monthly AI runs out you can buy an AI pack inside the app. Paste the license key under **Connections > Iris Pro**. Connections you saved before stay working. Your own Claude key, if you add one, is always used first.
 
 ---
 

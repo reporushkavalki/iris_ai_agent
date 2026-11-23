@@ -235,6 +235,7 @@ def connection_lock(pid: str, body: Lock):
 
 @app.post("/api/connections/{pid}/remove")
 def connection_remove(pid: str):
+    old_key = pro.license_key() if pid == "pro" else ""
     try:
         vault.remove(pid)
     except PermissionError as e:
@@ -242,6 +243,7 @@ def connection_remove(pid: str):
     portfolio._status_cache["t"] = 0
     if pid == "pro":
         pro.forget()
+        pro.release_device(old_key)       # frees this computer's slot, so the license can be used on another one
     return _connections_payload()
 
 
@@ -367,6 +369,15 @@ def pro_status():
 def pro_refresh():
     pro.refresh()
     return pro.public_view()
+
+
+@app.post("/api/pro/pack")
+def pro_pack():
+    """'Buy more AI': the Stripe page for an extra AI pack. The pack is added by the Pro server once it is paid."""
+    try:
+        return {"url": pro.buy_pack_url()}
+    except ValueError as e:
+        _bad(e)
 
 
 # ---------------- demo + chat ----------------

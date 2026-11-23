@@ -19,7 +19,7 @@ import threading
 import time
 
 from iris import net, prefs, providers, vault
-from iris.config import PRO_FILE, PRO_URL, UPGRADE_URL
+from iris.config import DATA_DIR, PRO_FILE, PRO_URL, UPGRADE_URL
 
 FREE_ACCOUNT_LIMIT = 5
 
@@ -70,11 +70,97 @@ def _write_file(d: dict) -> None:
 
 def _active_status(server: dict, offline: bool = False) -> dict:
     return {"plan": "pro", "active": True, "reason": "", "expires": server.get("expires"), "ai": server.get("ai"),
-            "offline": offline, "account_limit": None, "upgrade_url": None, "name": server.get("name")}
+            "offline": offline, "account_limit": None, "upgrade_url": None, "name": server.get("name"), "devices": server.get("devices")}
+
+
+# ---------- this device ----------
+# A license works on a few devices (the server decides how many). Each install of Iris tells the server which device it is:
+# on Windows an id made from the machine id, elsewhere a random id kept in the data folder. Only a hash ever leaves this computer.
+DEVICE_FILE = DATA_DIR / "device.id"
+_device: dict = {"id": ""}
+
+
+def _machine_guid() -> str:
+    if os.name != "nt":
+        return ""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", 0,
+                            winreg.KEY_READ | getattr(winreg, "KEY_WOW64_64KEY", 0)) as k:
+            return str(winreg.QueryValueEx(k, "MachineGuid")[0] or "")
+    except OSError:
+        return ""
+
+
+def device_id() -> str:
+    """A stable id for this computer (32 hex characters). Never contains anything personal."""
+    if _device["id"]:
+        return _device["id"]
+    guid = _machine_guid()
+    if guid:
+        _device["id"] = hashlib.sha256(("iris-device:" + guid).encode()).hexdigest()[:32]
+        return _device["id"]
+    try:
+        v = DEVICE_FILE.read_text(encoding="utf-8").strip()
+        if len(v) == 32 and all(c in "0123456789abcdef" for c in v):
+            _device["id"] = v
+            return v
+    except OSError:
+        pass
+    v = os.urandom(16).hex()
+    try:
+        DEVICE_FILE.write_text(v, encoding="utf-8")
+    except OSError:
+        pass
+    _device["id"] = v
+    return v
+
+
+def _headers() -> dict:
+    return {"x-iris-device": device_id()}
 
 
 def _ask_server(key: str) -> dict:
-    return net.post(PRO_URL + "/license/status", json={"key": key}, retries=1)
+    try:
+        return net.post(PRO_URL + "/license/status", json={"key": key}, headers=_headers(), retries=1)
+    except net.ApiError as e:
+        if str(e).startswith("HTTP 403"):            # e.g. the license is already used on its maximum number of devices: show the server's own words
+            try:
+                r = net._client.post(PRO_URL + "/license/status", json={"key": key}, headers=_headers())
+                reason = (r.json() or {}).get("reason")
+                if reason:
+                    return {"valid": False, "reason": str(reason)}
+            except Exception:  # noqa: BLE001
+                pass
+        raise
+
+
+def release_device(key: str) -> None:
+    """Frees this device's slot on the server when the license is removed here (best effort, in the background)."""
+    if not key:
+        return
+
+    def run():
+        try:
+            net.post(PRO_URL + "/license/release", json={"key": key}, headers=_headers(), retries=1)
+        except Exception:  # noqa: BLE001 - offline: the server frees unused slots by itself after a while
+            pass
+    threading.Thread(target=run, daemon=True).start()
+
+
+def buy_pack_url() -> str:
+    """The Stripe page where this license buys an extra AI pack."""
+    key = license_key()
+    if not key:
+        raise ValueError("Paste your Iris Pro license key under Connections first.")
+    try:
+        ans = net.post(PRO_URL + "/stripe/pack", json={"key": key}, headers=_headers(), retries=1)
+    except net.ApiError as e:
+        raise ValueError("The AI pack page could not be opened: " + str(e).split(": ", 1)[-1]) from e
+    url = str(ans.get("url") or "")
+    if not url.startswith("https://"):
+        raise ValueError("The AI pack page could not be opened. Try again in a minute.")
+    return url
 
 
 def refresh() -> dict:
@@ -215,7 +301,7 @@ def check_can_add() -> None:
 def hosted_client():
     """An Anthropic client that talks to the Pro server instead of Anthropic. The 'api key' is the license key."""
     import anthropic
-    return anthropic.Anthropic(api_key=license_key(), base_url=PRO_URL + "/ai", max_retries=1, timeout=60.0)
+    return anthropic.Anthropic(api_key=license_key(), base_url=PRO_URL + "/ai", max_retries=1, timeout=60.0, default_headers=_headers())
 
 
 FREE_MODEL = "claude-haiku-5-5"      # the free plan chats with this fast, cheap model; Pro adds the advanced one
@@ -247,7 +333,8 @@ def explain_error(e: Exception) -> str | None:
         forget_cache_only()
         return msg or "Your Iris Pro license was not accepted. Check it under Connections."
     if code in (402, 429):
-        return msg or "The Iris AI allowance is used up for now. You can add your own Claude key under Connections to keep chatting."
+        forget_cache_only()                        # so the Connections card shows the new allowance (and the BUY MORE AI button)
+        return msg or "The Iris AI allowance is used up for now. Buy more AI under Connections, or add your own Claude key to keep chatting."
     if code >= 500:
         return "The Iris AI service is not answering right now. Try again in a minute."
     return msg or None

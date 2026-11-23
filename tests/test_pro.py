@@ -310,3 +310,45 @@ def test_free_plan_chats_with_haiku_and_pro_may_choose(monkeypatch):
     server(monkeypatch, GOOD)
     pro.refresh()
     assert pro.own_key_model() == "claude-opus-5-5"             # Pro: their choice
+
+
+def test_the_license_check_says_which_device_this_is(monkeypatch):
+    sent = []
+    monkeypatch.setattr(pro.net, "post", lambda url, **kw: sent.append((url, kw.get("headers"))) or GOOD)
+    save_key()
+    pro.refresh()
+    dev = sent[0][1]["x-iris-device"]
+    assert len(dev) == 32 and dev == pro.device_id() and KEY not in dev
+    assert pro.hosted_client().default_headers.get("x-iris-device") == dev
+
+
+def test_removing_the_license_frees_this_device(monkeypatch):
+    sent = []
+    monkeypatch.setattr(pro.net, "post", lambda url, **kw: sent.append((url, kw.get("json"))) or GOOD)
+    monkeypatch.setattr(pro.threading, "Thread", lambda target, daemon: type("T", (), {"start": lambda self: target()})())
+    save_key()
+    vault.set_locked("pro", False)
+    assert client.post("/api/connections/pro/remove").status_code == 200
+    assert (pro.PRO_URL + "/license/release", {"key": KEY}) in sent
+
+
+def test_buy_more_ai_opens_the_stripe_page(monkeypatch):
+    calls = server(monkeypatch, {"url": "https://checkout.stripe.com/c/pay/cs_test_x"})
+    save_key()
+    r = client.post("/api/pro/pack")
+    assert r.status_code == 200 and r.json()["url"].startswith("https://checkout.stripe.com/")
+    assert calls[-1] == (pro.PRO_URL + "/stripe/pack", {"key": KEY})
+
+
+def test_a_full_device_list_shows_the_servers_reason(monkeypatch):
+    def refuse(url, **kw):
+        raise net.ApiError("HTTP 403: {\"valid\":false")
+
+    class R:
+        def json(self):
+            return {"valid": False, "reason": "This license is already in use on 2 devices (the limit is 2)."}
+    monkeypatch.setattr(pro.net, "post", refuse)
+    monkeypatch.setattr(pro.net._client, "post", lambda *a, **kw: R())
+    save_key()
+    st = pro.refresh()
+    assert not st["active"] and "2 devices" in st["reason"]
