@@ -28,3 +28,5 @@ desktop/build/
 desktop/src-tauri/target/
 desktop/src-tauri/server/
 desktop/src-tauri/gen/
+__pycache__/ 
+data/shortcut.log 
