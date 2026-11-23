@@ -390,3 +390,5 @@ button.sw.on{border-color:#fff;box-shadow:0 0 0 2px rgba(var(--c-rgb),.5)}
 .pill.pro{background:rgba(255,200,70,.14);color:#ffc846;border-color:rgba(255,200,70,.45)}
 .locked-card{opacity:.82;border-style:dashed}
 .locked-card .bl{opacity:.8}
+
+.betabadge{display:inline-block;margin-left:10px;padding:2px 8px;border:1px solid var(--c,#ffb84d);border-radius:99px;color:var(--c,#ffb84d);font:600 10px/1.4 "Rajdhani",sans-serif;letter-spacing:.14em;vertical-align:middle;text-shadow:none}

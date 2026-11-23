@@ -8,8 +8,8 @@ ADDRESS = "39oAW7hrufjNi6tm7bS35n3uRaxavV4hMD19y6UKyusU"
 
 
 def available(st: dict) -> bool:
-    """Shown once something is connected (an account or wallet, social accounts, the Claude key) or the demo data is on, so it can be tried."""
-    return bool(st.get("demo") or st.get("configured") or st.get("has_socials") or st.get("ai_ready"))
+    """Never shown: Iris is a paid service, so it does not ask for donations. The rest of this module stays for now."""
+    return False
 
 
 def blockhash() -> dict:
